@@ -52,6 +52,7 @@ bot.command('deposit', async (ctx) => {
     }
 
     const item = data.items[0];
+    const created = new Date(item.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
     const msg =
       `📦 Deposit Order\n\n` +
       `Order ID: ${item.orderId}\n` +
@@ -60,7 +61,7 @@ bot.command('deposit', async (ctx) => {
       `Status: ${item.status}\n` +
       `Channel: ${item.channelName}\n` +
       `Note: ${item.note || '-'}\n` +
-      `Created: ${item.createdAt}`;
+      `Created: ${created}`;
 
     ctx.reply(msg);
   } catch (err) {
