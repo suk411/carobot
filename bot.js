@@ -74,5 +74,12 @@ bot.command('deposit', async (ctx) => {
 bot.launch();
 console.log('Bot is running...');
 
+// Health server for Render
+const http = require('http');
+const PORT = process.env.PORT || 3000;
+http.createServer((_, res) => res.end('ok')).listen(PORT, () => {
+  console.log(`Health server listening on port ${PORT}`);
+});
+
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
