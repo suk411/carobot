@@ -9,6 +9,20 @@ const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
 // In-memory store: chatId -> adminToken
 const adminTokens = new Map();
 
+// Authorized chat IDs (comma-separated in .env)
+const allowedChatIds = (process.env.ALLOWED_CHAT_IDS || '')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean)
+  .map(Number);
+
+bot.use((ctx, next) => {
+  if (allowedChatIds.length && !allowedChatIds.includes(ctx.chat.id)) {
+    return ctx.reply('Unauthorized. You are not allowed to use this bot.');
+  }
+  return next();
+});
+
 bot.start((ctx) => {
   ctx.reply(
     'Welcome to Carobot Admin Bot!\n\n' +
