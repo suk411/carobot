@@ -16,9 +16,28 @@ const allowedChatIds = (process.env.ALLOWED_CHAT_IDS || '')
   .filter(Boolean)
   .map(Number);
 
+const OWNER_CHAT_ID = Number(process.env.OWNER_CHAT_ID) || 0;
+
 bot.use((ctx, next) => {
   if (allowedChatIds.length && !allowedChatIds.includes(ctx.chat.id)) {
-    return ctx.reply('Unauthorized. You are not allowed to use this bot.');
+    const intruder = ctx.chat.id;
+    const username = ctx.from?.username ? '@' + ctx.from.username : 'none';
+    const name = ctx.from?.first_name || 'unknown';
+    const now = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+
+    ctx.reply('Unauthorized. You are not allowed to use this bot.');
+
+    if (OWNER_CHAT_ID) {
+      ctx.telegram.sendMessage(
+        OWNER_CHAT_ID,
+        `⚠️ Unauthorized Access Detected\n\n` +
+        `User ID: ${intruder}\n` +
+        `Username: ${username}\n` +
+        `Name: ${name}\n` +
+        `Time: ${now}`
+      );
+    }
+    return;
   }
   return next();
 });
