@@ -46,18 +46,63 @@ bot.use((ctx, next) => {
 bot.start((ctx) => {
   ctx.reply(
     'Welcome to Carobot Bot!\n\n' +
-    'Commands:\n' +
-    '/user <userId> - Search user\n' +
-    '/status <userId> <status> - Update user status (active/suspended/inactive)\n' +
-    '/bindbank <userId> <bankName> <ifsc> <accountNo> <holder> - Update bank\n' +
-    '/giftcodes [page] - List gift codes\n' +
-    '/code <code> - Get gift code details\n' +
-    '/createcode <reward> <maxRedeems> <expiry> [multiplier] - Create gift code\n' +
-    '/updatecode <code> <field> <value> - Update gift code\n' +
-    '/togglecode <code> - Enable/disable gift code\n' +
-    '/deletecode <code> - Delete gift code\n' +
-    '/redemptions <code> - List redemptions\n' +
-    '/deposit <orderId> - Search deposit order'
+    '📋 Commands with Examples\n\n' +
+    '👤 /user <userId>\n' +
+    '   ➜ /user 123456\n\n' +
+    '🔁 /status <userId> <status> [remark]\n' +
+    '   ➜ /status 123456 suspended "Violation of terms"\n\n' +
+    '🏦 /bindbank <userId> <bankName> <ifsc> <accountNo> <holder>\n' +
+    '   ➜ /bindbank 123456 SBI SBIN00123 9876543210 "John Doe"\n\n' +
+    '🎁 /giftcodes [page]\n' +
+    '   ➜ /giftcodes\n' +
+    '   ➜ /giftcodes 2\n\n' +
+    '🔍 /code <giftCode>\n' +
+    '   ➜ /code WELCOME2026\n\n' +
+    '✨ /createcode <reward> <maxRedeems> <expiry> [multiplier]\n' +
+    '   ➜ /createcode 100 50 2026-12-31\n' +
+    '   ➜ /createcode 50 100 2026-12-31 2\n\n' +
+    '✏️ /updatecode <code> <field> <value>\n' +
+    '   ➜ /updatecode WELCOME2026 rewardAmount 150\n' +
+    '   ➜ /updatecode WELCOME2026 maxRedemptions 200\n\n' +
+    '🔄 /togglecode <code>\n' +
+    '   ➜ /togglecode WELCOME2026\n\n' +
+    '🗑️ /deletecode <code>\n' +
+    '   ➜ /deletecode WELCOME2026\n\n' +
+    '📜 /redemptions <code> [page]\n' +
+    '   ➜ /redemptions WELCOME2026\n\n' +
+    '📦 /deposit <orderId>\n' +
+    '   ➜ /deposit ODR1234567890123456'
+  );
+});
+
+bot.command('commands', (ctx) => {
+  ctx.reply(
+    '📋 Commands with Examples\n\n' +
+    '👤 /user <userId>\n' +
+    '   ➜ /user 123456\n\n' +
+    '🔁 /status <userId> <status> [remark]\n' +
+    '   ➜ /status 123456 suspended "Violation of terms"\n\n' +
+    '🏦 /bindbank <userId> <bankName> <ifsc> <accountNo> <holder>\n' +
+    '   ➜ /bindbank 123456 SBI SBIN00123 9876543210 "John Doe"\n\n' +
+    '🎁 /giftcodes [page]\n' +
+    '   ➜ /giftcodes\n' +
+    '   ➜ /giftcodes 2\n\n' +
+    '🔍 /code <giftCode>\n' +
+    '   ➜ /code WELCOME2026\n\n' +
+    '✨ /createcode <reward> <maxRedeems> <expiry> [multiplier]\n' +
+    '   ➜ /createcode 100 50 2026-12-31\n' +
+    '   ➜ /createcode 50 100 2026-12-31 2\n\n' +
+    '✏️ /updatecode <code> <field> <value>\n' +
+    '   ➜ /updatecode WELCOME2026 rewardAmount 150\n' +
+    '   ➜ /updatecode WELCOME2026 maxRedemptions 200\n\n' +
+    '🔄 /togglecode <code>\n' +
+    '   ➜ /togglecode WELCOME2026\n\n' +
+    '🗑️ /deletecode <code>\n' +
+    '   ➜ /deletecode WELCOME2026\n\n' +
+    '📜 /redemptions <code> [page]\n' +
+    '   ➜ /redemptions WELCOME2026\n\n' +
+    '📦 /deposit <orderId>\n' +
+    '   ➜ /deposit ODR1234567890123456'
   );
 });
 
