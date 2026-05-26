@@ -6,10 +6,11 @@ const API_BASE = 'https://backend-ledger-0ra6.onrender.com/api';
 
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
 
-// In-memory store: chatId -> adminToken
-const adminTokens = new Map();
+const api = axios.create({
+  baseURL: API_BASE,
+  headers: { 'x-bot-token': process.env.BOT_API_KEY },
+});
 
-// Authorized chat IDs (comma-separated in .env)
 const allowedChatIds = (process.env.ALLOWED_CHAT_IDS || '')
   .split(',')
   .map(s => s.trim())
@@ -44,49 +45,188 @@ bot.use((ctx, next) => {
 
 bot.start((ctx) => {
   ctx.reply(
-    'Welcome to Carobot Admin Bot!\n\n' +
+    'Welcome to Carobot Bot!\n\n' +
     'Commands:\n' +
-    '/setadmin <token> - Store your admin API token\n' +
-    '/deposit <orderId> - Search a deposit order by ID\n\n' +
-    'First, set your admin token with /setadmin, then use /deposit.'
+    '/user <userId> - Search user\n' +
+    '/status <userId> <status> - Update user status (active/suspended/inactive)\n' +
+    '/bindbank <userId> <bankName> <ifsc> <accountNo> <holder> - Update bank\n' +
+    '/giftcodes [page] - List gift codes\n' +
+    '/code <code> - Get gift code details\n' +
+    '/createcode <reward> <maxRedeems> <expiry> [multiplier] - Create gift code\n' +
+    '/updatecode <code> <field> <value> - Update gift code\n' +
+    '/togglecode <code> - Enable/disable gift code\n' +
+    '/deletecode <code> - Delete gift code\n' +
+    '/redemptions <code> - List redemptions\n' +
+    '/deposit <orderId> - Search deposit order'
   );
 });
 
-bot.command('setadmin', (ctx) => {
-  const token = ctx.message.text.split(' ').slice(1).join(' ').trim();
-  if (!token) {
-    return ctx.reply('Usage: /setadmin <your_admin_token>');
+async function replyWithError(ctx, err) {
+  const status = err.response?.status;
+  const msg = err.response?.data?.msg || err.message;
+  ctx.reply(`Error (${status || 'unknown'}): ${msg}`);
+}
+
+bot.command('user', async (ctx) => {
+  const userId = ctx.message.text.split(' ')[1];
+  if (!userId) return ctx.reply('Usage: /user <userId>');
+  try {
+    const res = await api.get('/bot/user', { params: { userId } });
+    const { user, account } = res.data;
+    const bank = account.bindAccount;
+    ctx.reply(
+      `👤 User Info\n\n` +
+      `ID: ${user.userId}\n` +
+      `Mobile: ${user.mobile}\n` +
+      `Status: ${account.status}\n` +
+      `VIP: ${account.vipLevel}\n` +
+      `Balance: ${account.balance}\n` +
+      `Withdrawable: ${account.withdrawable}\n` +
+      `Total Deposits: ${account.totalDeposits}\n` +
+      `Bank: ${bank ? bank.bankName + ' - ' + bank.accountHolder : 'none'}\n` +
+      `Created: ${new Date(user.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}`
+    );
+  } catch (err) { replyWithError(ctx, err); }
+});
+
+bot.command('status', async (ctx) => {
+  const parts = ctx.message.text.split(' ');
+  const userId = parts[1];
+  const status = parts[2];
+  const remark = parts.slice(3).join(' ') || '';
+  if (!userId || !status) return ctx.reply('Usage: /status <userId> <active|suspended|inactive> [remark]');
+  try {
+    const res = await api.patch('/bot/user', { userId, status, remark });
+    ctx.reply(`✅ Status updated\nUser: ${res.data.userId}\nStatus: ${res.data.status}`);
+  } catch (err) { replyWithError(ctx, err); }
+});
+
+bot.command('bindbank', async (ctx) => {
+  const parts = ctx.message.text.split(' ');
+  const userId = parts[1];
+  const bankName = parts[2];
+  const bankCode = parts[3];
+  const accountNumber = parts[4];
+  const accountHolder = parts.slice(5).join(' ');
+  if (!userId || !bankName || !bankCode || !accountNumber || !accountHolder) {
+    return ctx.reply('Usage: /bindbank <userId> <bankName> <ifsc> <accountNo> <holder>');
   }
-  adminTokens.set(ctx.chat.id, token);
-  ctx.reply('Admin token saved for this chat.');
+  try {
+    const res = await api.put('/bot/user/bind-bank', { userId, bankName, bankCode, accountNumber, accountHolder });
+    ctx.reply(`✅ Bank updated for user ${res.data.userId}`);
+  } catch (err) { replyWithError(ctx, err); }
+});
+
+bot.command('giftcodes', async (ctx) => {
+  const page = ctx.message.text.split(' ')[1] || 1;
+  try {
+    const res = await api.get('/bot/gift-codes', { params: { page, limit: 25 } });
+    const { items, total, page: p } = res.data;
+    if (!items || items.length === 0) return ctx.reply('No gift codes found.');
+    let msg = `🎁 Gift Codes (Page ${p}/${Math.ceil(total / 25)})\n\n`;
+    items.forEach((c, i) => {
+      msg += `${i + 1}. ${c.code} — ${c.rewardAmount} (${c.usedCount}/${c.maxRedemptions} used) ${c.isActive ? '✅' : '❌'}\n`;
+    });
+    ctx.reply(msg);
+  } catch (err) { replyWithError(ctx, err); }
+});
+
+bot.command('code', async (ctx) => {
+  const code = ctx.message.text.split(' ')[1];
+  if (!code) return ctx.reply('Usage: /code <giftCode>');
+  try {
+    const res = await api.get(`/bot/gift-codes/${code}`);
+    const c = res.data.giftCode;
+    ctx.reply(
+      `🎁 Gift Code: ${c.code}\n\n` +
+      `Reward: ${c.rewardAmount}\n` +
+      `Turnover Multiplier: ${c.turnoverMultiplier}\n` +
+      `Redeemed: ${c.usedCount}/${c.maxRedemptions}\n` +
+      `Min Deposit Today: ${c.minDepositToday}\n` +
+      `Active: ${c.isActive ? '✅' : '❌'}\n` +
+      `Expires: ${new Date(c.expiryDate).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}\n` +
+      `Description: ${c.description || '-'}`
+    );
+  } catch (err) { replyWithError(ctx, err); }
+});
+
+bot.command('createcode', async (ctx) => {
+  const parts = ctx.message.text.split(' ');
+  const rewardAmount = parts[1];
+  const maxRedemptions = parts[2];
+  const expiryDate = parts[3];
+  const turnoverMultiplier = parts[4] || 1;
+  if (!rewardAmount || !maxRedemptions || !expiryDate) {
+    return ctx.reply('Usage: /createcode <reward> <maxRedeems> <expiry> [multiplier]\nExpiry: YYYY-MM-DD or ISO date');
+  }
+  const expiry = expiryDate.includes('T') ? expiryDate : `${expiryDate}T23:59:59.000Z`;
+  try {
+    const res = await api.post('/bot/gift-codes', { rewardAmount, maxRedemptions, expiryDate: expiry, turnoverMultiplier });
+    ctx.reply(`✅ Gift code created: ${res.data.giftCode.code} (${rewardAmount})`);
+  } catch (err) { replyWithError(ctx, err); }
+});
+
+bot.command('updatecode', async (ctx) => {
+  const parts = ctx.message.text.split(' ');
+  const code = parts[1];
+  const field = parts[2];
+  const value = parts.slice(3).join(' ');
+  if (!code || !field || !value) {
+    return ctx.reply('Usage: /updatecode <code> <field> <value>\nFields: rewardAmount, maxRedemptions, expiryDate, turnoverMultiplier, description, minDepositToday');
+  }
+  try {
+    const res = await api.put(`/bot/gift-codes/${code}`, { [field]: isNaN(value) ? value : Number(value) });
+    ctx.reply(`✅ ${code} updated`);
+  } catch (err) { replyWithError(ctx, err); }
+});
+
+bot.command('togglecode', async (ctx) => {
+  const code = ctx.message.text.split(' ')[1];
+  if (!code) return ctx.reply('Usage: /togglecode <giftCode>');
+  try {
+    const cur = await api.get(`/bot/gift-codes/${code}`);
+    const newActive = !cur.data.giftCode.isActive;
+    const res = await api.patch(`/bot/gift-codes/${code}/toggle`, { isActive: newActive });
+    ctx.reply(`✅ ${code} is now ${res.data.giftCode.isActive ? 'enabled' : 'disabled'}`);
+  } catch (err) { replyWithError(ctx, err); }
+});
+
+bot.command('deletecode', async (ctx) => {
+  const code = ctx.message.text.split(' ')[1];
+  if (!code) return ctx.reply('Usage: /deletecode <giftCode>');
+  try {
+    await api.delete(`/bot/gift-codes/${code}`);
+    ctx.reply(`✅ Gift code ${code} deleted`);
+  } catch (err) { replyWithError(ctx, err); }
+});
+
+bot.command('redemptions', async (ctx) => {
+  const parts = ctx.message.text.split(' ');
+  const code = parts[1];
+  const page = parts[2] || 1;
+  if (!code) return ctx.reply('Usage: /redemptions <giftCode> [page]');
+  try {
+    const res = await api.get(`/bot/gift-codes/${code}/redemptions`, { params: { page, limit: 25 } });
+    const { items, total } = res.data;
+    if (!items || items.length === 0) return ctx.reply('No redemptions found.');
+    let msg = `🔄 Redemptions for ${code} (${total} total)\n\n`;
+    items.forEach((r, i) => {
+      msg += `${i + 1}. User ${r.userId} — ${r.rewardAmount} at ${new Date(r.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}\n`;
+    });
+    ctx.reply(msg);
+  } catch (err) { replyWithError(ctx, err); }
 });
 
 bot.command('deposit', async (ctx) => {
   const orderId = ctx.message.text.split(' ').slice(1).join(' ').trim();
-  if (!orderId) {
-    return ctx.reply('Usage: /deposit <orderId>');
-  }
-
-  const token = adminTokens.get(ctx.chat.id);
-  if (!token) {
-    return ctx.reply('No admin token set. Use /setadmin <token> first.');
-  }
-
+  if (!orderId) return ctx.reply('Usage: /deposit <orderId>');
   try {
-    const res = await axios.get(`${API_BASE}/admin/deposits`, {
-      params: { orderId },
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
+    const res = await api.get('/admin/deposits', { params: { orderId } });
     const data = res.data;
-
-    if (!data.items || data.items.length === 0) {
-      return ctx.reply('No deposit order found with that ID.');
-    }
-
+    if (!data.items || data.items.length === 0) return ctx.reply('No deposit order found.');
     const item = data.items[0];
     const created = new Date(item.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
-    const msg =
+    ctx.reply(
       `📦 Deposit Order\n\n` +
       `Order ID: ${item.orderId}\n` +
       `User ID: ${item.userId}\n` +
@@ -94,20 +234,14 @@ bot.command('deposit', async (ctx) => {
       `Status: ${item.status}\n` +
       `Channel: ${item.channelName}\n` +
       `Note: ${item.note || '-'}\n` +
-      `Created: ${created}`;
-
-    ctx.reply(msg);
-  } catch (err) {
-    const status = err.response?.status;
-    const msg = err.response?.data?.msg || err.message;
-    ctx.reply(`Error (${status || 'unknown'}): ${msg}`);
-  }
+      `Created: ${created}`
+    );
+  } catch (err) { replyWithError(ctx, err); }
 });
 
 bot.launch();
 console.log('Bot is running...');
 
-// Health server for Render
 const http = require('http');
 const PORT = process.env.PORT || 3000;
 http.createServer((_, res) => res.end('ok')).listen(PORT, () => {
