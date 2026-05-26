@@ -45,63 +45,99 @@ bot.use((ctx, next) => {
 
 bot.start((ctx) => {
   ctx.reply(
-    'Welcome to Carobot Bot!\n\n' +
-    '📋 Commands with Examples\n\n' +
-    '👤 /user <userId>\n' +
+    '🤖 Welcome to Carobot Bot\n\n' +
+    '━━━━━━━━━━━━━━━━━━━━\n' +
+    '🔍 Search Users\n' +
+    '━━━━━━━━━━━━━━━━━━━━\n' +
+    '/user <userId>\n' +
+    '   Search user by ID — shows balance, bank, VIP, status\n' +
     '   ➜ /user 123456\n\n' +
-    '🔁 /status <userId> <status> [remark]\n' +
+    '/status <userId> <status> [remark]\n' +
+    '   Update user status (active / suspended / inactive)\n' +
     '   ➜ /status 123456 suspended "Violation of terms"\n\n' +
-    '🏦 /bindbank <userId> <bankName> <ifsc> <accountNo> <holder>\n' +
+    '/bindbank <userId> <bankName> <ifsc> <accountNo> <holder>\n' +
+    '   Update user bank account details\n' +
     '   ➜ /bindbank 123456 SBI SBIN00123 9876543210 "John Doe"\n\n' +
-    '🎁 /giftcodes [page]\n' +
+    '━━━━━━━━━━━━━━━━━━━━\n' +
+    '🎁 Gift Codes\n' +
+    '━━━━━━━━━━━━━━━━━━━━\n' +
+    '/giftcodes [page]\n' +
+    '   List all gift codes (paginated)\n' +
     '   ➜ /giftcodes\n' +
     '   ➜ /giftcodes 2\n\n' +
-    '🔍 /code <giftCode>\n' +
+    '/code <giftCode>\n' +
+    '   Get details of a specific gift code\n' +
     '   ➜ /code WELCOME2026\n\n' +
-    '✨ /createcode <reward> <maxRedeems> <expiry> [multiplier]\n' +
+    '/createcode <reward> <maxRedeems> <expiry> [multiplier]\n' +
+    '   Create a new gift code (expiry: YYYY-MM-DD)\n' +
     '   ➜ /createcode 100 50 2026-12-31\n' +
     '   ➜ /createcode 50 100 2026-12-31 2\n\n' +
-    '✏️ /updatecode <code> <field> <value>\n' +
-    '   ➜ /updatecode WELCOME2026 rewardAmount 150\n' +
-    '   ➜ /updatecode WELCOME2026 maxRedemptions 200\n\n' +
-    '🔄 /togglecode <code>\n' +
+    '/updatecode <code> <field> <value>\n' +
+    '   Update a gift code field (rewardAmount, maxRedemptions, etc.)\n' +
+    '   ➜ /updatecode WELCOME2026 rewardAmount 150\n\n' +
+    '/togglecode <code>\n' +
+    '   Enable or disable a gift code\n' +
     '   ➜ /togglecode WELCOME2026\n\n' +
-    '🗑️ /deletecode <code>\n' +
+    '/deletecode <code>\n' +
+    '   Permanently delete a gift code\n' +
     '   ➜ /deletecode WELCOME2026\n\n' +
-    '📜 /redemptions <code> [page]\n' +
+    '/redemptions <code> [page]\n' +
+    '   List all redemptions of a gift code\n' +
     '   ➜ /redemptions WELCOME2026\n\n' +
-    '📦 /deposit <orderId>\n' +
+    '━━━━━━━━━━━━━━━━━━━━\n' +
+    '💰 Deposits\n' +
+    '━━━━━━━━━━━━━━━━━━━━\n' +
+    '/deposit <orderId>\n' +
+    '   Search a deposit order by order ID\n' +
     '   ➜ /deposit ODR1234567890123456'
   );
 });
 
 bot.command('commands', (ctx) => {
   ctx.reply(
-    '📋 Commands with Examples\n\n' +
-    '👤 /user <userId>\n' +
+    '━━━━━━━━━━━━━━━━━━━━\n' +
+    '🔍 Search Users\n' +
+    '━━━━━━━━━━━━━━━━━━━━\n' +
+    '/user <userId>\n' +
+    '   Search user by ID — shows balance, bank, VIP, status\n' +
     '   ➜ /user 123456\n\n' +
-    '🔁 /status <userId> <status> [remark]\n' +
+    '/status <userId> <status> [remark]\n' +
+    '   Update user status (active / suspended / inactive)\n' +
     '   ➜ /status 123456 suspended "Violation of terms"\n\n' +
-    '🏦 /bindbank <userId> <bankName> <ifsc> <accountNo> <holder>\n' +
+    '/bindbank <userId> <bankName> <ifsc> <accountNo> <holder>\n' +
+    '   Update user bank account details\n' +
     '   ➜ /bindbank 123456 SBI SBIN00123 9876543210 "John Doe"\n\n' +
-    '🎁 /giftcodes [page]\n' +
+    '━━━━━━━━━━━━━━━━━━━━\n' +
+    '🎁 Gift Codes\n' +
+    '━━━━━━━━━━━━━━━━━━━━\n' +
+    '/giftcodes [page]\n' +
+    '   List all gift codes (paginated)\n' +
     '   ➜ /giftcodes\n' +
     '   ➜ /giftcodes 2\n\n' +
-    '🔍 /code <giftCode>\n' +
+    '/code <giftCode>\n' +
+    '   Get details of a specific gift code\n' +
     '   ➜ /code WELCOME2026\n\n' +
-    '✨ /createcode <reward> <maxRedeems> <expiry> [multiplier]\n' +
+    '/createcode <reward> <maxRedeems> <expiry> [multiplier]\n' +
+    '   Create a new gift code (expiry: YYYY-MM-DD)\n' +
     '   ➜ /createcode 100 50 2026-12-31\n' +
     '   ➜ /createcode 50 100 2026-12-31 2\n\n' +
-    '✏️ /updatecode <code> <field> <value>\n' +
-    '   ➜ /updatecode WELCOME2026 rewardAmount 150\n' +
-    '   ➜ /updatecode WELCOME2026 maxRedemptions 200\n\n' +
-    '🔄 /togglecode <code>\n' +
+    '/updatecode <code> <field> <value>\n' +
+    '   Update a gift code field (rewardAmount, maxRedemptions, etc.)\n' +
+    '   ➜ /updatecode WELCOME2026 rewardAmount 150\n\n' +
+    '/togglecode <code>\n' +
+    '   Enable or disable a gift code\n' +
     '   ➜ /togglecode WELCOME2026\n\n' +
-    '🗑️ /deletecode <code>\n' +
+    '/deletecode <code>\n' +
+    '   Permanently delete a gift code\n' +
     '   ➜ /deletecode WELCOME2026\n\n' +
-    '📜 /redemptions <code> [page]\n' +
+    '/redemptions <code> [page]\n' +
+    '   List all redemptions of a gift code\n' +
     '   ➜ /redemptions WELCOME2026\n\n' +
-    '📦 /deposit <orderId>\n' +
+    '━━━━━━━━━━━━━━━━━━━━\n' +
+    '💰 Deposits\n' +
+    '━━━━━━━━━━━━━━━━━━━━\n' +
+    '/deposit <orderId>\n' +
+    '   Search a deposit order by order ID\n' +
     '   ➜ /deposit ODR1234567890123456'
   );
 });
