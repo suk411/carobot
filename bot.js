@@ -43,6 +43,21 @@ bot.use((ctx, next) => {
   return next();
 });
 
+bot.telegram.setMyCommands([
+  { command: 'user', description: 'Search user by ID — balance, bank, VIP, status' },
+  { command: 'status', description: 'Update user status (active/suspended/inactive)' },
+  { command: 'bindbank', description: 'Update user bank account details' },
+  { command: 'giftcodes', description: 'List all gift codes (paginated)' },
+  { command: 'code', description: 'Get details of a specific gift code' },
+  { command: 'createcode', description: 'Create a new gift code' },
+  { command: 'updatecode', description: 'Update a gift code field' },
+  { command: 'togglecode', description: 'Enable or disable a gift code' },
+  { command: 'deletecode', description: 'Permanently delete a gift code' },
+  { command: 'redemptions', description: 'List redemptions of a gift code' },
+  { command: 'deposit', description: 'Search a deposit order by order ID' },
+  { command: 'commands', description: 'Show all commands with examples' },
+]);
+
 bot.start((ctx) => {
   ctx.reply(
     '🤖 Welcome to Carobot Bot\n\n' +
