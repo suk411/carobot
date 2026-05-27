@@ -54,7 +54,6 @@ bot.telegram.setMyCommands([
   { command: 'togglecode', description: 'Enable or disable a gift code' },
   { command: 'deletecode', description: 'Permanently delete a gift code' },
   { command: 'redemptions', description: 'List redemptions of a gift code' },
-  { command: 'deposit', description: 'Search a deposit order by order ID' },
   { command: 'commands', description: 'Show all commands with examples' },
 ]);
 
@@ -98,13 +97,7 @@ bot.start((ctx) => {
     '   ➜ /deletecode WELCOME2026\n\n' +
     '/redemptions <code> [page]\n' +
     '   List all redemptions of a gift code\n' +
-    '   ➜ /redemptions WELCOME2026\n\n' +
-    '━━━━━━━━━━━━━━━━━━━━\n' +
-    '💰 Deposits\n' +
-    '━━━━━━━━━━━━━━━━━━━━\n' +
-    '/deposit <orderId>\n' +
-    '   Search a deposit order by order ID\n' +
-    '   ➜ /deposit ODR1234567890123456'
+    '   ➜ /redemptions WELCOME2026'
   );
 });
 
@@ -147,13 +140,7 @@ bot.command('commands', (ctx) => {
     '   ➜ /deletecode WELCOME2026\n\n' +
     '/redemptions <code> [page]\n' +
     '   List all redemptions of a gift code\n' +
-    '   ➜ /redemptions WELCOME2026\n\n' +
-    '━━━━━━━━━━━━━━━━━━━━\n' +
-    '💰 Deposits\n' +
-    '━━━━━━━━━━━━━━━━━━━━\n' +
-    '/deposit <orderId>\n' +
-    '   Search a deposit order by order ID\n' +
-    '   ➜ /deposit ODR1234567890123456'
+    '   ➜ /redemptions WELCOME2026'
   );
 });
 
@@ -310,28 +297,6 @@ bot.command('redemptions', async (ctx) => {
       msg += `${i + 1}. User ${r.userId} — ${r.rewardAmount} at ${new Date(r.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}\n`;
     });
     ctx.reply(msg);
-  } catch (err) { replyWithError(ctx, err); }
-});
-
-bot.command('deposit', async (ctx) => {
-  const orderId = ctx.message.text.split(' ').slice(1).join(' ').trim();
-  if (!orderId) return ctx.reply('Usage: /deposit <orderId>');
-  try {
-    const res = await api.get('/admin/deposits', { params: { orderId } });
-    const data = res.data;
-    if (!data.items || data.items.length === 0) return ctx.reply('No deposit order found.');
-    const item = data.items[0];
-    const created = new Date(item.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
-    ctx.reply(
-      `📦 Deposit Order\n\n` +
-      `Order ID: ${item.orderId}\n` +
-      `User ID: ${item.userId}\n` +
-      `Amount: ${item.amount} ${item.currency}\n` +
-      `Status: ${item.status}\n` +
-      `Channel: ${item.channelName}\n` +
-      `Note: ${item.note || '-'}\n` +
-      `Created: ${created}`
-    );
   } catch (err) { replyWithError(ctx, err); }
 });
 
