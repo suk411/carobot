@@ -44,32 +44,31 @@ bot.use((ctx, next) => {
 });
 
 bot.telegram.setMyCommands([
-  { command: 'user', description: 'Full user search — profile, account, stats, recent activity' },
-  { command: 'commands', description: 'Show all commands' },
+  { command: 'user', description: 'Search user by ID or mobile' },
+  { command: 'dashboard', description: 'Today dashboard by user ID or mobile' },
+  { command: 'deposits', description: 'List deposits by user ID or mobile' },
+  { command: 'withdrawals', description: 'List withdrawals by user ID or mobile' },
 ]);
 
 bot.start((ctx) => {
   ctx.reply(
     '🤖 Welcome to Carobot Bot\n\n' +
-    '━━━━━━━━━━━━━━━━━━━━\n' +
-    '🔍 User Search\n' +
-    '━━━━━━━━━━━━━━━━━━━━\n' +
-    '/user <userId>\n' +
-    '   Full user search — profile, wallet, stats, recent transactions\n' +
-    '   ➜ /user 123456'
+    '/user <uid|mobile>       — Search user\n' +
+    '/dashboard <uid|mobile>  — Today dashboard\n' +
+    '/deposits <uid|mobile>   — List deposits\n' +
+    '/withdrawals <uid|mobile>— List withdrawals\n\n' +
+    '➜ /user 123456\n' +
+    '➜ /dashboard 123456\n' +
+    '➜ /deposits 123456\n' +
+    '➜ /withdrawals 123456'
   );
 });
 
-bot.command('commands', (ctx) => {
-  ctx.reply(
-    '━━━━━━━━━━━━━━━━━━━━\n' +
-    '🔍 User Search\n' +
-    '━━━━━━━━━━━━━━━━━━━━\n' +
-    '/user <userId>\n' +
-    '   Full user search — profile, wallet, stats, recent transactions\n' +
-    '   ➜ /user 123456'
-  );
-});
+bot.command('commands', bot.start);
+
+function fmt(d) {
+  return new Date(d).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+}
 
 async function replyWithError(ctx, err) {
   const status = err.response?.status;
@@ -77,53 +76,115 @@ async function replyWithError(ctx, err) {
   ctx.reply(`Error (${status || 'unknown'}): ${msg}`);
 }
 
-function fmt(d) {
-  return new Date(d).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+async function fetchUser(input) {
+  const isMobile = /^\d{10,15}$/.test(input) && input.length > 6;
+  const params = isMobile ? { mobile: input } : { userId: input };
+  return api.get('/bot/user', { params });
 }
 
 bot.command('user', async (ctx) => {
-  const userId = ctx.message.text.split(' ')[1];
-  if (!userId) return ctx.reply('Usage: /user <userId>');
+  const input = ctx.message.text.split(' ').slice(1).join(' ').trim();
+  if (!input) return ctx.reply('Usage: /user <userId or mobile>');
 
   try {
-    const res = await api.get('/bot/user', { params: { userId } });
-    const { user, account, stats, recentTransactions, recentDeposits, recentWithdrawals } = res.data;
+    const res = await fetchUser(input);
+    const { user, account, stats } = res.data;
 
     let msg =
-      `👤 User Profile\n\n` +
-      `ID: ${user.userId}\n` +
-      `Mobile: ${user.mobile}\n` +
-      `Status: ${account.status}\n` +
-      `VIP: ${account.vipLevel}\n` +
+      `👤 User #${user.userId}\n` +
+      `📱 ${user.mobile}\n` +
+      `━━━━━━━━━━━━━━━━━━━━\n` +
       `Balance: ${account.balance}\n` +
       `Withdrawable: ${account.withdrawable}\n` +
-      `Created: ${fmt(user.createdAt)}\n\n` +
+      `VIP: ${account.vipLevel}\n` +
+      `Status: ${account.status}\n` +
+      `Turnover Req: ${account.turnover_requirement}\n` +
+      `Total Deposits: ${account.totalDeposits}\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
       `📊 Stats\n` +
+      `Deposits: ${stats.totalDeposits} (${stats.depositCount})\n` +
+      `Withdrawals: ${stats.totalWithdrawals} (${stats.withdrawalCount})\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
-      `Deposits: ${stats.totalDeposits} (${stats.depositCount} txns)\n` +
-      `Withdrawals: ${stats.totalWithdrawals} (${stats.withdrawalCount} txns)\n`;
+      `Created: ${fmt(user.createdAt)}`;
 
-    if (recentDeposits && recentDeposits.length) {
-      msg += `\n━━━━━━━━━━━━━━━━━━━━\n📥 Recent Deposits\n━━━━━━━━━━━━━━━━━━━━\n`;
-      recentDeposits.slice(0, 5).forEach(d => {
-        msg += `${d.amount} ${d.currency} — ${d.status} — ${fmt(d.createdAt)}\n`;
-      });
-    }
+    ctx.reply(msg);
+  } catch (err) { replyWithError(ctx, err); }
+});
 
-    if (recentWithdrawals && recentWithdrawals.length) {
-      msg += `\n━━━━━━━━━━━━━━━━━━━━\n📤 Recent Withdrawals\n━━━━━━━━━━━━━━━━━━━━\n`;
-      recentWithdrawals.slice(0, 5).forEach(w => {
-        msg += `${w.amount} — ${w.status} — ${fmt(w.createdAt)}\n`;
-      });
-    }
+bot.command('dashboard', async (ctx) => {
+  const input = ctx.message.text.split(' ').slice(1).join(' ').trim();
+  if (!input) return ctx.reply('Usage: /dashboard <userId or mobile>');
 
-    if (recentTransactions && recentTransactions.length) {
-      msg += `\n━━━━━━━━━━━━━━━━━━━━\n🔄 Recent Transactions\n━━━━━━━━━━━━━━━━━━━━\n`;
-      recentTransactions.slice(0, 5).forEach(t => {
-        msg += `${t.type} ${t.amount} — ${t.status} — ${fmt(t.createdAt)}\n`;
-      });
-    }
+  try {
+    const res = await fetchUser(input);
+    const { user, account, stats, recentDeposits, recentWithdrawals } = res.data;
+    const today = new Date().toDateString();
+    const todayDeposits = (recentDeposits || []).filter(d => new Date(d.createdAt).toDateString() === today);
+    const todayWithdrawals = (recentWithdrawals || []).filter(w => new Date(w.createdAt).toDateString() === today);
+
+    let msg =
+      `📊 Today Dashboard\n` +
+      `User: #${user.userId} (${user.mobile})\n` +
+      `━━━━━━━━━━━━━━━━━━━━\n` +
+      `Balance: ${account.balance}\n` +
+      `Withdrawable: ${account.withdrawable}\n` +
+      `━━━━━━━━━━━━━━━━━━━━\n` +
+      `📥 Today Deposits: ${todayDeposits.length}\n`;
+
+    todayDeposits.slice(0, 3).forEach(d => {
+      msg += `   ${d.amount} ${d.currency} — ${d.status}\n`;
+    });
+
+    msg += `📤 Today Withdrawals: ${todayWithdrawals.length}\n`;
+    todayWithdrawals.slice(0, 3).forEach(w => {
+      msg += `   ${w.amount} — ${w.status}\n`;
+    });
+
+    msg += `━━━━━━━━━━━━━━━━━━━━\n` +
+      `Total Deposits: ${stats.totalDeposits} (${stats.depositCount})\n` +
+      `Total Withdrawals: ${stats.totalWithdrawals} (${stats.withdrawalCount})`;
+
+    ctx.reply(msg);
+  } catch (err) { replyWithError(ctx, err); }
+});
+
+bot.command('deposits', async (ctx) => {
+  const input = ctx.message.text.split(' ').slice(1).join(' ').trim();
+  if (!input) return ctx.reply('Usage: /deposits <userId or mobile>');
+
+  try {
+    const res = await fetchUser(input);
+    const { user, recentDeposits } = res.data;
+    const items = recentDeposits || [];
+
+    if (!items.length) return ctx.reply(`No deposits found for user #${user.userId}.`);
+
+    let msg = `📥 Deposits — User #${user.userId}\n\n`;
+    items.slice(0, 10).forEach(d => {
+      msg += `${d.amount} ${d.currency} — ${d.status} — ${d.channelName || '-'}\n   ${fmt(d.createdAt)}\n\n`;
+    });
+    if (items.length > 10) msg += `...and ${items.length - 10} more`;
+
+    ctx.reply(msg);
+  } catch (err) { replyWithError(ctx, err); }
+});
+
+bot.command('withdrawals', async (ctx) => {
+  const input = ctx.message.text.split(' ').slice(1).join(' ').trim();
+  if (!input) return ctx.reply('Usage: /withdrawals <userId or mobile>');
+
+  try {
+    const res = await fetchUser(input);
+    const { user, recentWithdrawals } = res.data;
+    const items = recentWithdrawals || [];
+
+    if (!items.length) return ctx.reply(`No withdrawals found for user #${user.userId}.`);
+
+    let msg = `📤 Withdrawals — User #${user.userId}\n\n`;
+    items.slice(0, 10).forEach(w => {
+      msg += `${w.amount} — ${w.status} — ${w.channelName || '-'}\n   ${fmt(w.createdAt)}\n\n`;
+    });
+    if (items.length > 10) msg += `...and ${items.length - 10} more`;
 
     ctx.reply(msg);
   } catch (err) { replyWithError(ctx, err); }
