@@ -64,8 +64,6 @@ bot.start((ctx) => {
   );
 });
 
-bot.command('commands', bot.start);
-
 function fmt(d) {
   return new Date(d).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
 }
