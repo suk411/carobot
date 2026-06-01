@@ -18,9 +18,9 @@ The `BOT_API_KEY` is configured server-side in the `.env` file.
 
 ---
 
-## Full User Search
+## 1. Full User Search
 
-Returns user profile, account details, aggregated stats, recent transactions, deposits, and withdrawals — all in one call.
+Matches admin `/admin/user` response exactly. Returns user profile, account details, payment methods, and device risk info.
 
 ```
 GET /bot/user?userId=123456
@@ -51,85 +51,201 @@ GET /bot/user?userId=123456
     "totalDeposits": 5000.0,
     "vipLevel": "VIP1",
     "gameMemberCreated": true,
-    "status": "active"
-  },
-  "stats": {
-    "totalDeposits": 5000.0,
-    "depositCount": 5,
-    "totalWithdrawals": 2000.0,
-    "withdrawalCount": 3
-  },
-  "recentTransactions": [
-    {
-      "userId": 123456,
-      "type": "DEPOSIT",
-      "amount": 1000.0,
-      "charge": 0,
-      "balanceAfter": 2000.0,
-      "status": "SUCCESS",
-      "orderId": "DEP123456",
-      "remark": "",
-      "createdAt": "2026-03-19T10:30:00.000Z",
-      "updatedAt": "2026-03-19T10:30:00.000Z"
-    },
-    {
-      "userId": 123456,
-      "type": "BET",
-      "amount": 100.0,
-      "charge": 0,
-      "balanceAfter": 1900.0,
-      "status": "SUCCESS",
-      "orderId": "ORD123456",
-      "remark": "Wingo bet on green",
-      "createdAt": "2026-03-19T11:00:00.000Z",
-      "updatedAt": "2026-03-19T11:00:00.000Z"
+    "status": "active",
+    "bindAccount": {
+      "bankName": "SBI",
+      "bankCode": "SBIN",
+      "accountNumber": "1234567890",
+      "accountHolder": "John Doe",
+      "boundAt": "2026-01-10T00:00:00.000Z"
     }
-  ],
-  "recentDeposits": [
+  },
+  "paymentMethods": [...],
+  "sameIpUsers": [],
+  "lastIp": "192.168.1.1"
+}
+```
+
+---
+
+## 2. Dashboard (Today by Default)
+
+Returns today's dashboard stats. No date params needed — defaults to today automatically. Matches admin `/admin/dashboard` response exactly.
+
+```
+GET /bot/dashboard
+```
+
+**Response:**
+
+```json
+{
+  "status": "success",
+  "period": "today",
+  "overview": {
+    "totalUsers": 1000,
+    "newUsers": 25
+  },
+  "deposits": {
+    "total": 50000.0,
+    "count": 50,
+    "pendingCount": 5
+  },
+  "withdrawals": {
+    "total": 30000.0,
+    "count": 30,
+    "chargeTotal": 1200.0,
+    "success": {
+      "count": 25,
+      "total": 25000.0,
+      "chargeTotal": 1000.0
+    },
+    "pending": {
+      "count": 3,
+      "total": 3000.0,
+      "chargeTotal": 120.0
+    },
+    "failed": {
+      "count": 2,
+      "total": 2000.0,
+      "chargeTotal": 80.0
+    },
+    "byStatus": {
+      "SUCCESS": { "count": 25, "total": 25000.0 },
+      "PENDING": { "count": 2, "total": 2000.0 },
+      "AUDITING": { "count": 1, "total": 1000.0 },
+      "FAILED": { "count": 2, "total": 2000.0 }
+    }
+  },
+  "agentCommission": {
+    "total": 500.0,
+    "count": 20
+  }
+}
+```
+
+---
+
+## 3. Deposit Orders
+
+Search deposit orders by `userId` or `orderId`. Matches admin `/admin/deposits` response exactly.
+
+```
+GET /bot/deposits?userId=123456
+GET /bot/deposits?orderId=ODR1234567890123456
+```
+
+**Query Params:**
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| userId | number | No | Filter by user ID |
+| orderId | string | No | Get single order by ID |
+| mobile | string | No | Filter by mobile number |
+| status | string | No | Filter: PENDING, SUCCESS, FAILED, REFUNDED, EXPIRED |
+| dateFrom | string | No | Start date (YYYY-MM-DD) |
+| dateTo | string | No | End date (YYYY-MM-DD) |
+| page | number | No | Page number (default: 1) |
+| limit | number | No | Items per page (default: 50, max: 100) |
+
+**Response:**
+
+```json
+{
+  "status": "success",
+  "total": 150,
+  "page": 1,
+  "limit": 50,
+  "items": [
     {
-      "orderId": "ODR123456",
+      "_id": "...",
+      "orderId": "ODR1234567890123456",
       "userId": 123456,
       "amount": 1000.0,
       "receivedAmount": 1000.0,
       "currency": "INR",
-      "status": "SUCCESS",
+      "status": "PENDING",
+      "gatewayOrderNo": "gw123456",
+      "paymentLinks": {},
       "channelName": "SimplyPay",
       "note": "Deposit request",
       "createdAt": "2026-03-19T10:30:00.000Z",
       "updatedAt": "2026-03-19T10:30:00.000Z"
     }
-  ],
-  "recentWithdrawals": [
+  ]
+}
+```
+
+---
+
+## 4. Withdrawal Orders
+
+Search withdrawal orders by `userId` or `orderId`. Matches admin `/admin/withdrawals` response exactly.
+
+```
+GET /bot/withdrawals?userId=123456
+GET /bot/withdrawals?orderId=WD1234567890123456
+```
+
+**Query Params:**
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| userId | number | No | Filter by user ID |
+| orderId | string | No | Get single order by ID |
+| status | string | No | Filter: PENDING, AUDITING, SUCCESS, FAILED, CANCELLED |
+| dateFrom | string | No | Start date (YYYY-MM-DD) |
+| dateTo | string | No | End date (YYYY-MM-DD) |
+| page | number | No | Page number (default: 1) |
+| limit | number | No | Items per page (default: 50, max: 100) |
+
+**Response:**
+
+```json
+{
+  "status": "success",
+  "total": 50,
+  "page": 1,
+  "limit": 50,
+  "items": [
     {
-      "orderId": "WD123456",
+      "_id": "...",
+      "orderId": "WD1234567890123456",
       "userId": 123456,
       "amount": 500.0,
       "charge": 0,
+      "currency": "INR",
+      "status": "PENDING",
       "paymentMethod": "UPI",
-      "status": "SUCCESS",
+      "paymentDetails": {
+        "upiId": "user@upi",
+        "accountNo": "",
+        "ifsc": "",
+        "bankName": "",
+        "rplId": "",
+        "holderName": "John Doe"
+      },
+      "bankDetails": {
+        "bankName": "SBI",
+        "bankCode": "UTIB0001617",
+        "accountNumber": "923010051550740",
+        "accountHolder": "John Doe",
+        "ifsc": "UTIB0001617"
+      },
       "channelName": "SimplyPay",
       "note": "Withdrawal request",
-      "createdAt": "2026-03-19T11:00:00.000Z",
-      "updatedAt": "2026-03-19T11:00:00.000Z"
+      "createdAt": "2026-03-19T10:30:00.000Z",
+      "updatedAt": "2026-03-19T10:30:00.000Z"
     }
   ]
 }
 ```
 
-| Response Field | Description |
-|---------------|-------------|
-| user | User profile (userId, mobile, admin, created/updated dates) |
-| account | Wallet account (balance, turnover requirement, VIP level, status) |
-| stats | Aggregated deposit/withdrawal totals and counts |
-| recentTransactions | Last 25 transaction ledger entries (all types: DEPOSIT, BET, WIN, WITHDRAW, etc.) |
-| recentDeposits | Last 25 deposit orders |
-| recentWithdrawals | Last 25 withdrawal orders |
-
 ---
 
 ## Error Responses
 
-### 400 Bad Request — Missing userId
+### 400 Bad Request
 
 ```json
 {
@@ -179,10 +295,23 @@ GET /bot/user?userId=123456
 const BOT_TOKEN = process.env.BOT_API_KEY;
 const BASE_URL = "https://backend-ledger-0ra6.onrender.com/api";
 
-async function searchUser(userId) {
-  const res = await fetch(`${BASE_URL}/bot/user?userId=${userId}`, {
-    headers: { "x-bot-token": BOT_TOKEN },
-  });
-  return res.json();
-}
+// Full user lookup
+const user = await fetch(`${BASE_URL}/bot/user?userId=123456`, {
+  headers: { "x-bot-token": BOT_TOKEN },
+});
+
+// Today's dashboard
+const dashboard = await fetch(`${BASE_URL}/bot/dashboard`, {
+  headers: { "x-bot-token": BOT_TOKEN },
+});
+
+// Deposit orders by user
+const deposits = await fetch(`${BASE_URL}/bot/deposits?userId=123456`, {
+  headers: { "x-bot-token": BOT_TOKEN },
+});
+
+// Withdrawal orders by orderId
+const withdrawal = await fetch(`${BASE_URL}/bot/withdrawals?orderId=WD123456`, {
+  headers: { "x-bot-token": BOT_TOKEN },
+});
 ```
