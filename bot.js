@@ -17,7 +17,11 @@ const allowedChatIds = (process.env.ALLOWED_CHAT_IDS || '')
   .filter(Boolean)
   .map(Number);
 
-const OWNER_CHAT_ID = Number(process.env.OWNER_CHAT_ID) || 0;
+const ownerChatIds = (process.env.OWNER_CHAT_ID || '')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean)
+  .map(Number);
 
 bot.use((ctx, next) => {
   if (allowedChatIds.length && !allowedChatIds.includes(ctx.chat.id)) {
@@ -28,12 +32,12 @@ bot.use((ctx, next) => {
 
     ctx.reply('Unauthorized.');
 
-    if (OWNER_CHAT_ID) {
+    ownerChatIds.forEach(id => {
       ctx.telegram.sendMessage(
-        OWNER_CHAT_ID,
+        id,
         `⚠️ Unauthorized\nUser: ${intruder}\n@${username}\n${name}\nTime: ${now}`
       );
-    }
+    });
     return;
   }
   return next();
