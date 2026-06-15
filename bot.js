@@ -46,8 +46,15 @@ bot.use((ctx, next) => {
   return next();
 });
 
-bot.start((ctx) => {
+const WAKE_URL = process.env.SELF_URL || 'https://carobot-ers3.onrender.com/';
+
+bot.start(async (ctx) => {
+  await ctx.replyWithChatAction('typing');
+  try {
+    await axios.get(WAKE_URL, { timeout: 30000 });
+  } catch (_) {}
   ctx.reply(
+    '✅ Ready to use!\n\n' +
     '🤖 Carobot\n\n' +
     '👤 /user <id|mobile>\n' +
     '📊 /dashboard [today|month|YYYY-MM-DD]\n' +
@@ -365,24 +372,12 @@ console.log('Bot running...');
 
 const http = require('http');
 const PORT = process.env.PORT || 3000;
-http.createServer((_, res) => res.end('ok')).listen(PORT, () => {
+http.createServer((_, res) => {
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ status: 'success', msg: 'ready to use' }));
+}).listen(PORT, () => {
   console.log(`Health on port ${PORT}`);
 });
-
-const SELF_URL = process.env.RENDER_EXTERNAL_URL || process.env.SELF_URL;
-if (SELF_URL) {
-  setInterval(async () => {
-    try {
-      const res = await axios.get(SELF_URL, { timeout: 15000 });
-      console.log(`[KeepAlive] Pinged ${SELF_URL} — ${res.status}`);
-    } catch (e) {
-      console.log(`[KeepAlive] Ping failed: ${e.message}`);
-    }
-  }, 10 * 60 * 1000);
-  console.log(`KeepAlive enabled — pinging ${SELF_URL} every 10min`);
-} else {
-  console.log('KeepAlive disabled — set RENDER_EXTERNAL_URL or SELF_URL to enable');
-}
 
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
