@@ -354,8 +354,10 @@ bot.command('roundstats', async (ctx) => {
   } catch (err) { replyWithError(ctx, err); }
 });
 
-bot.launch().then(async () => {
+(async () => {
+  await bot.launch();
   await bot.telegram.setMyCommands([
+    { command: 'start', description: 'Wake server and show menu' },
     { command: 'user', description: 'Search user by ID or mobile' },
     { command: 'dashboard', description: 'Dashboard (today/month/date)' },
     { command: 'deposits', description: 'Search deposits by userId/mobile/orderId' },
@@ -367,6 +369,8 @@ bot.launch().then(async () => {
     { command: 'roundstats', description: 'Round stats by issue number' },
   ]);
   console.log('Bot commands registered');
+})().catch(err => {
+  console.error('Bot launch failed:', err.message);
 });
 console.log('Bot running...');
 
