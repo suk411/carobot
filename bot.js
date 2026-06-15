@@ -46,18 +46,6 @@ bot.use((ctx, next) => {
   return next();
 });
 
-bot.telegram.setMyCommands([
-  { command: 'user', description: 'Search user by ID or mobile' },
-  { command: 'dashboard', description: 'Dashboard (today/month/date)' },
-  { command: 'deposits', description: 'Search deposits by userId/mobile/orderId' },
-  { command: 'withdrawals', description: 'Search withdrawals by userId/orderId' },
-  { command: 'transactions', description: 'Search transactions by userId/orderId' },
-  { command: 'round', description: 'Current round info' },
-  { command: 'bets', description: 'Current round bets' },
-  { command: 'rounds', description: 'Settled rounds' },
-  { command: 'roundstats', description: 'Round stats by issue number' },
-]);
-
 bot.start((ctx) => {
   ctx.reply(
     '🤖 Carobot\n\n' +
@@ -359,7 +347,20 @@ bot.command('roundstats', async (ctx) => {
   } catch (err) { replyWithError(ctx, err); }
 });
 
-bot.launch();
+bot.launch().then(async () => {
+  await bot.telegram.setMyCommands([
+    { command: 'user', description: 'Search user by ID or mobile' },
+    { command: 'dashboard', description: 'Dashboard (today/month/date)' },
+    { command: 'deposits', description: 'Search deposits by userId/mobile/orderId' },
+    { command: 'withdrawals', description: 'Search withdrawals by userId/orderId' },
+    { command: 'transactions', description: 'Search transactions by userId/orderId' },
+    { command: 'round', description: 'Current round info' },
+    { command: 'bets', description: 'Current round bets' },
+    { command: 'rounds', description: 'Settled rounds' },
+    { command: 'roundstats', description: 'Round stats by issue number' },
+  ]);
+  console.log('Bot commands registered');
+});
 console.log('Bot running...');
 
 const http = require('http');
