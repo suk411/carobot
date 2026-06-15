@@ -87,8 +87,14 @@ async function reply(ctx, msg) {
 
 async function replyWithError(ctx, err) {
   const status = err.response?.status;
-  const msg = err.response?.data?.msg || err.message;
-  ctx.reply(`Error (${status || '?'}): ${msg}`);
+  const data = err.response?.data;
+  let reply = `❌ Error (${status || '?'})`;
+  if (data) {
+    reply += `\n\n${JSON.stringify(data, null, 2)}`;
+  } else {
+    reply += `: ${err.message}`;
+  }
+  ctx.reply(reply);
 }
 
 bot.command('user', async (ctx) => {
@@ -361,6 +367,21 @@ const PORT = process.env.PORT || 3000;
 http.createServer((_, res) => res.end('ok')).listen(PORT, () => {
   console.log(`Health on port ${PORT}`);
 });
+
+const SELF_URL = process.env.RENDER_EXTERNAL_URL || process.env.SELF_URL;
+if (SELF_URL) {
+  setInterval(async () => {
+    try {
+      const res = await axios.get(SELF_URL, { timeout: 15000 });
+      console.log(`[KeepAlive] Pinged ${SELF_URL} — ${res.status}`);
+    } catch (e) {
+      console.log(`[KeepAlive] Ping failed: ${e.message}`);
+    }
+  }, 10 * 60 * 1000);
+  console.log(`KeepAlive enabled — pinging ${SELF_URL} every 10min`);
+} else {
+  console.log('KeepAlive disabled — set RENDER_EXTERNAL_URL or SELF_URL to enable');
+}
 
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
