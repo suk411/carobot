@@ -39,6 +39,13 @@ bot.use((ctx, next) => {
   return next();
 });
 
+bot.use((ctx, next) => {
+  if (ctx.message?.text?.startsWith('/') && ctx.chat) {
+    ctx.replyWithChatAction('typing');
+  }
+  return next();
+});
+
 bot.telegram.setMyCommands([
   { command: 'user', description: 'Search user by ID or mobile' },
   { command: 'dashboard', description: 'Dashboard (today/month/date)' },
