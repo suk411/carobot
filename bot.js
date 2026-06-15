@@ -2,7 +2,7 @@ const { Telegraf } = require('telegraf');
 const axios = require('axios');
 require('dotenv').config();
 
-const API_BASE = 'https://backend-ledger-0ra6.onrender.com/api';
+const API_BASE = 'https://admin-backend-7lwn.onrender.com/api/admin';
 
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
 
@@ -26,16 +26,12 @@ bot.use((ctx, next) => {
     const name = ctx.from?.first_name || 'unknown';
     const now = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
 
-    ctx.reply('Unauthorized. You are not allowed to use this bot.');
+    ctx.reply('Unauthorized.');
 
     if (OWNER_CHAT_ID) {
       ctx.telegram.sendMessage(
         OWNER_CHAT_ID,
-        `⚠️ Unauthorized Access Detected\n\n` +
-        `User ID: ${intruder}\n` +
-        `Username: ${username}\n` +
-        `Name: ${name}\n` +
-        `Time: ${now}`
+        `⚠️ Unauthorized\nUser: ${intruder}\n@${username}\n${name}\nTime: ${now}`
       );
     }
     return;
@@ -44,23 +40,29 @@ bot.use((ctx, next) => {
 });
 
 bot.telegram.setMyCommands([
-  { command: 'user', description: 'Search user by ID' },
-  { command: 'dashboard', description: 'Today overall dashboard' },
-  { command: 'deposits', description: 'Search deposits by userId, mobile, or orderId' },
-  { command: 'withdrawals', description: 'Search withdrawals by userId, orderId' },
+  { command: 'user', description: 'Search user by ID or mobile' },
+  { command: 'dashboard', description: 'Dashboard (today/month/date)' },
+  { command: 'deposits', description: 'Search deposits by userId/mobile/orderId' },
+  { command: 'withdrawals', description: 'Search withdrawals by userId/orderId' },
+  { command: 'transactions', description: 'Search transactions by userId/orderId' },
+  { command: 'round', description: 'Current round info' },
+  { command: 'bets', description: 'Current round bets' },
+  { command: 'rounds', description: 'Settled rounds' },
+  { command: 'roundstats', description: 'Round stats by issue number' },
 ]);
 
 bot.start((ctx) => {
   ctx.reply(
-    '🤖 Welcome to Carobot Bot\n\n' +
-    '/user <userId>                    — Search user\n' +
-    '/dashboard                        — Today overall dashboard\n' +
-    '/deposits <userId|mobile|orderId> — Search deposits\n' +
-    '/withdrawals <userId|orderId>     — Search withdrawals\n\n' +
-    '➜ /user 123456\n' +
-    '➜ /dashboard\n' +
-    '➜ /deposits ODR1234567890123456\n' +
-    '➜ /withdrawals WD1234567890123456'
+    '🤖 Carobot\n\n' +
+    '👤 /user <id|mobile>\n' +
+    '📊 /dashboard [today|month|YYYY-MM-DD]\n' +
+    '📥 /deposits <id|mobile|orderId>\n' +
+    '📤 /withdrawals <id|orderId>\n' +
+    '🔄 /transactions <id|orderId>\n' +
+    '🎯 /round\n' +
+    '🎲 /bets [page]\n' +
+    '📋 /rounds [page]\n' +
+    '📈 /roundstats <issueNumber>'
   );
 });
 
@@ -79,87 +81,88 @@ async function reply(ctx, msg) {
 async function replyWithError(ctx, err) {
   const status = err.response?.status;
   const msg = err.response?.data?.msg || err.message;
-  ctx.reply(`Error (${status || 'unknown'}): ${msg}`);
+  ctx.reply(`Error (${status || '?'}): ${msg}`);
 }
 
 bot.command('user', async (ctx) => {
-  const userId = ctx.message.text.split(' ')[1];
-  if (!userId) return ctx.reply('Usage: /user <userId>');
+  const input = ctx.message.text.split(' ').slice(1).join(' ').trim();
+  if (!input) return ctx.reply('Usage: /user <userId or mobile>');
+
+  const params = /^\d{10,15}$/.test(input) && input.length > 6
+    ? { mobile: input } : { userId: input };
 
   try {
-    const res = await api.get('/bot/user', { params: { userId } });
-    const { user, account } = res.data;
-    const bank = account.bindAccount;
+    const res = await api.get('/user', { params });
+    const { user, account, paymentMethods, deviceInfo } = res.data;
+    const bank = paymentMethods?.bank;
+    const upi = paymentMethods?.upi;
 
     let msg =
       `👤 User #${user.userId}\n` +
       `📱 ${user.mobile}\n` +
-      `👑 Admin: ${user.admin}\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
-      `💰 Account\n` +
       `Balance: ${account.balance}\n` +
-      `Withdrawable: ${account.withdrawable}\n` +
+      `Freeze: ${account.freezeBalance}\n` +
       `VIP: ${account.vipLevel}\n` +
       `Status: ${account.status}\n` +
-      `Turnover Req: ${account.turnover_requirement}\n` +
       `Total Deposits: ${account.totalDeposits}\n` +
-      `Game Member: ${account.gameMemberCreated ? '✅' : '❌'}\n`;
+      `Total Withdrawals: ${account.totalWithdrawals}\n`;
 
     if (bank) {
       msg += `━━━━━━━━━━━━━━━━━━━━\n` +
-        `🏦 Bank Account\n` +
-        `Bank: ${bank.bankName}\n` +
-        `IFSC: ${bank.bankCode}\n` +
-        `Account: ${bank.accountNumber}\n` +
-        `Holder: ${bank.accountHolder}\n` +
-        `Bound At: ${fmt(bank.boundAt)}\n`;
+        `🏦 Bank\n${bank.bankName}\n${bank.accountNo}\n${bank.ifsc}\n${bank.holderName}\n`;
+    }
+    if (upi) {
+      msg += `━━━━━━━━━━━━━━━━━━━━\n` +
+        `📱 UPI\n${upi.upiId}\n`;
+    }
+
+    if (account.turnover_batches?.length) {
+      msg += `━━━━━━━━━━━━━━━━━━━━\n📊 Turnover\n`;
+      account.turnover_batches.forEach(t => {
+        msg += `${t.source}: ${t.achieved}/${t.required}\n`;
+      });
     }
 
     msg += `━━━━━━━━━━━━━━━━━━━━\n` +
-      `Created: ${fmt(user.createdAt)}\n` +
-      `Updated: ${fmt(user.updatedAt)}`;
+      `🌐 Last IP: ${deviceInfo?.ip || lastIp}\n` +
+      `📍 ${deviceInfo?.city || ''}\n` +
+      `Same IP Users: ${res.data.sameIpUsers}\n` +
+      `Created: ${fmt(user.createdAt)}`;
 
     await reply(ctx, msg);
   } catch (err) { replyWithError(ctx, err); }
 });
 
 bot.command('dashboard', async (ctx) => {
+  const period = ctx.message.text.split(' ')[1] || 'today';
+  const params = /^\d{4}-\d{2}-\d{2}$/.test(period)
+    ? { date: period }
+    : { period };
+
   try {
-    const res = await api.get('/bot/dashboard');
+    const res = await api.get('/dashboard', { params });
     const { overview, deposits, withdrawals, agentCommission } = res.data;
 
     let msg =
-      `📊 Today Dashboard\n` +
+      `📊 Dashboard (${res.data.period})\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
-      `👥 Users Overview\n` +
-      `Total Users: ${overview.totalUsers}\n` +
-      `New Users: ${overview.newUsers}\n` +
+      `👥 Users: ${overview.totalUsers} (New: ${overview.newUsers})\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
-      `📥 Deposits\n` +
-      `Total Amount: ${deposits.total}\n` +
-      `Count: ${deposits.count}\n` +
-      `Pending: ${deposits.pendingCount}\n` +
+      `📥 Deposits: ${deposits.total} (${deposits.count}) Pending: ${deposits.pendingCount}\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
-      `📤 Withdrawals\n` +
-      `Total Amount: ${withdrawals.total}\n` +
-      `Count: ${withdrawals.count}\n` +
-      `Total Charge: ${withdrawals.chargeTotal}\n` +
-      `\n✅ Success: ${withdrawals.success.count} (${withdrawals.success.total})\n` +
-      `   Charge: ${withdrawals.success.chargeTotal}\n` +
-      `\n⏳ Pending: ${withdrawals.pending.count} (${withdrawals.pending.total})\n` +
-      `   Charge: ${withdrawals.pending.chargeTotal}\n` +
-      `\n❌ Failed: ${withdrawals.failed.count} (${withdrawals.failed.total})\n` +
-      `   Charge: ${withdrawals.failed.chargeTotal}\n` +
-      `\nBy Status:\n`;
+      `📤 Withdrawals: ${withdrawals.total} (${withdrawals.count})\n` +
+      `Charge: ${withdrawals.chargeTotal}\n` +
+      `✅ Success: ${withdrawals.success.count} (${withdrawals.success.total})\n` +
+      `⏳ Pending: ${withdrawals.pending.count} (${withdrawals.pending.total})\n` +
+      `❌ Failed: ${withdrawals.failed.count} (${withdrawals.failed.total})\n`;
 
-    for (const [st, data] of Object.entries(withdrawals.byStatus)) {
-      msg += `   ${st}: ${data.count} (${data.total})\n`;
+    for (const [st, d] of Object.entries(withdrawals.byStatus)) {
+      msg += `   ${st}: ${d.count} (${d.total})\n`;
     }
 
     msg += `━━━━━━━━━━━━━━━━━━━━\n` +
-      `💰 Agent Commission\n` +
-      `Total: ${agentCommission.total}\n` +
-      `Count: ${agentCommission.count}`;
+      `💰 Agent: ${agentCommission.total} (${agentCommission.count})`;
 
     await reply(ctx, msg);
   } catch (err) { replyWithError(ctx, err); }
@@ -170,38 +173,28 @@ bot.command('deposits', async (ctx) => {
   if (!input) return ctx.reply('Usage: /deposits <userId or mobile or orderId>');
 
   const isMobile = /^\d{10,15}$/.test(input) && input.length > 6;
-  const isOrderId = /^ODR/i.test(input);
+  const isOrderId = /^DEP/i.test(input);
   let params;
   if (isOrderId) params = { orderId: input };
   else if (isMobile) params = { mobile: input };
-  else params = { userId: input };
+  else params = { userId: input, limit: 10 };
 
   try {
-    const res = await api.get('/bot/deposits', { params });
-    const data = res.data;
-    const items = data.items || [];
-
+    const res = await api.get('/deposits', { params });
+    const items = res.data.items || [];
     if (!items.length) return ctx.reply('No deposits found.');
 
     let msg = isOrderId
-      ? `📥 Deposit Order\n\n`
-      : `📥 Deposits — User ${items[0].userId} (Page ${data.page}/${Math.ceil(data.total / data.limit)}, Total: ${data.total})\n\n`;
+      ? `📥 Deposit\n\n`
+      : `📥 Deposits — User ${items[0].userId} (${res.data.total || items.length})\n\n`;
 
     items.slice(0, 10).forEach((d, i) => {
       if (items.length > 1) msg += `#${i + 1}\n`;
-      msg += `Order ID: ${d.orderId}\n` +
-        `User ID: ${d.userId}\n` +
-        `Amount: ${d.amount}\n` +
-        `Received: ${d.receivedAmount}\n` +
-        `Currency: ${d.currency}\n` +
-        `Status: ${d.status}\n` +
-        `Channel: ${d.channelName || '-'}\n` +
-        `Gateway Order: ${d.gatewayOrderNo || '-'}\n` +
-        `Note: ${d.note || '-'}\n` +
-        `Created: ${fmt(d.createdAt)}\n` +
-        `Updated: ${fmt(d.updatedAt)}\n\n`;
+      msg += `${d.orderId}\n` +
+        `${d.amount} (Received: ${d.receivedAmount})\n` +
+        `${d.status} — ${d.channelName || '-'}\n` +
+        `${fmt(d.createdAt)}\n\n`;
     });
-    if (items.length > 10) msg += `...and ${items.length - 10} more`;
 
     await reply(ctx, msg);
   } catch (err) { replyWithError(ctx, err); }
@@ -211,59 +204,155 @@ bot.command('withdrawals', async (ctx) => {
   const input = ctx.message.text.split(' ').slice(1).join(' ').trim();
   if (!input) return ctx.reply('Usage: /withdrawals <userId or orderId>');
 
-  const isOrderId = /^WD/i.test(input);
-  const params = isOrderId ? { orderId: input } : { userId: input };
+  const isOrderId = /^WTH/i.test(input);
+  const params = isOrderId ? { orderId: input } : { userId: input, limit: 10 };
 
   try {
-    const res = await api.get('/bot/withdrawals', { params });
-    const data = res.data;
-    const items = data.items || [];
-
+    const res = await api.get('/withdrawals', { params });
+    const items = res.data.items || [];
     if (!items.length) return ctx.reply('No withdrawals found.');
 
     let msg = isOrderId
-      ? `📤 Withdrawal Order\n\n`
-      : `📤 Withdrawals — User ${items[0].userId} (Page ${data.page}/${Math.ceil(data.total / data.limit)}, Total: ${data.total})\n\n`;
+      ? `📤 Withdrawal\n\n`
+      : `📤 Withdrawals — User ${items[0].userId} (${res.data.total || items.length})\n\n`;
 
     items.slice(0, 10).forEach((w, i) => {
       if (items.length > 1) msg += `#${i + 1}\n`;
-      const pd = w.paymentDetails || {};
-      const bd = w.bankDetails || {};
-      msg += `Order ID: ${w.orderId}\n` +
-        `User ID: ${w.userId}\n` +
-        `Amount: ${w.amount}\n` +
-        `Charge: ${w.charge}\n` +
-        `Currency: ${w.currency}\n` +
-        `Status: ${w.status}\n` +
-        `Channel: ${w.channelName || '-'}\n` +
-        `Payment Method: ${w.paymentMethod || '-'}\n`;
-
-      if (pd.upiId) msg += `UPI ID: ${pd.upiId}\n`;
-      if (pd.accountNo || bd.accountNumber) {
-        const ac = pd.accountNo || bd.accountNumber;
-        const ifsc = pd.ifsc || bd.bankCode || '-';
-        const bank = pd.bankName || bd.bankName || '-';
-        const holder = pd.holderName || bd.accountHolder || '-';
-        msg += `Bank: ${bank}\nIFSC: ${ifsc}\nAccount: ${ac}\nHolder: ${holder}\n`;
-      }
-
-      msg += `Note: ${w.note || '-'}\n` +
-        `Created: ${fmt(w.createdAt)}\n` +
-        `Updated: ${fmt(w.updatedAt)}\n\n`;
+      msg += `${w.orderId}\n` +
+        `${w.amount} (Charge: ${w.charge})\n` +
+        `${w.status} — ${w.channelName || '-'}\n` +
+        `${fmt(w.createdAt)}\n\n`;
     });
-    if (items.length > 10) msg += `...and ${items.length - 10} more`;
+
+    await reply(ctx, msg);
+  } catch (err) { replyWithError(ctx, err); }
+});
+
+bot.command('transactions', async (ctx) => {
+  const input = ctx.message.text.split(' ').slice(1).join(' ').trim();
+  if (!input) return ctx.reply('Usage: /transactions <userId or orderId>');
+
+  const isOrderId = /^(DEP|WTH|WGB)/i.test(input);
+  const params = isOrderId ? { orderId: input, limit: 25 } : { userId: input, limit: 25 };
+
+  try {
+    const res = await api.get('/transactions', { params });
+    const items = res.data.items || [];
+    if (!items.length) return ctx.reply('No transactions found.');
+
+    let msg = `🔄 Transactions${isOrderId ? '' : ` — User ${items[0].userId}`} (${res.data.total || items.length})\n\n`;
+    items.slice(0, 15).forEach(t => {
+      msg += `${t.type} ${t.amount} — ${t.status}\n` +
+        `Bal: ${t.balanceAfter} | ${t.orderId}\n` +
+        `${t.remark || '-'}\n${fmt(t.createdAt)}\n\n`;
+    });
+
+    await reply(ctx, msg);
+  } catch (err) { replyWithError(ctx, err); }
+});
+
+bot.command('round', async (ctx) => {
+  try {
+    const res = await api.get('/current-round');
+    const { round, stats } = res.data;
+
+    let msg =
+      `🎯 Round #${round.issueNumber}\n` +
+      `Status: ${round.status}\n` +
+      `Start: ${fmt(round.startTime)}\n` +
+      `End: ${fmt(round.endTime)}\n` +
+      `━━━━━━━━━━━━━━━━━━━━\n` +
+      `📊 Stats\n` +
+      `Bets: ${stats.totalBets}\n` +
+      `Amount: ${stats.totalBetAmount}\n` +
+      `Users: ${stats.uniqueUsers}\n` +
+      `━━━━━━━━━━━━━━━━━━━━\n` +
+      `📈 Breakdown\n`;
+
+    for (const [key, val] of Object.entries(stats.breakdown)) {
+      msg += `${key}: ${val}\n`;
+    }
+
+    await reply(ctx, msg);
+  } catch (err) { replyWithError(ctx, err); }
+});
+
+bot.command('bets', async (ctx) => {
+  const page = ctx.message.text.split(' ')[1] || 1;
+
+  try {
+    const res = await api.get('/current-round/bets', { params: { page, limit: 25 } });
+    const items = res.data.items || [];
+    if (!items.length) return ctx.reply('No bets found.');
+
+    let msg = `🎲 Current Round Bets (Page ${res.data.page}/${Math.ceil(res.data.total / res.data.limit)})\n\n`;
+    items.slice(0, 20).forEach(b => {
+      msg += `#${b.userId}\n${b.selectType} — ${b.betAmount} (${b.status})\n${fmt(b.createdAt)}\n\n`;
+    });
+
+    await reply(ctx, msg);
+  } catch (err) { replyWithError(ctx, err); }
+});
+
+bot.command('rounds', async (ctx) => {
+  const page = ctx.message.text.split(' ')[1] || 1;
+
+  try {
+    const res = await api.get('/rounds', { params: { page, limit: 10 } });
+    const issues = res.data.issues || [];
+    if (!issues.length) return ctx.reply('No rounds found.');
+
+    let msg = `📋 Settled Rounds (Page ${res.data.page})\n\n`;
+    issues.forEach(r => {
+      msg += `#${r.issueNumber}\n` +
+        `Result: ${r.result} (${r.color}/${r.size})\n` +
+        `Bets: ${r.totalBets} | Amount: ${r.totalBetAmount}\n` +
+        `P/L: ${r.profitLoss}\n` +
+        `${fmt(r.createdAt)}\n\n`;
+    });
+
+    await reply(ctx, msg);
+  } catch (err) { replyWithError(ctx, err); }
+});
+
+bot.command('roundstats', async (ctx) => {
+  const issue = ctx.message.text.split(' ')[1];
+  if (!issue) return ctx.reply('Usage: /roundstats <issueNumber>');
+
+  try {
+    const res = await api.get(`/round-stats/${issue}`);
+    const { issue: round, stats } = res.data;
+
+    let msg =
+      `📈 Round #${round.issueNumber}\n` +
+      `Result: ${round.result} (${round.color}/${round.size})\n` +
+      `Status: ${round.status}\n` +
+      `${fmt(round.createdAt)}\n` +
+      `━━━━━━━━━━━━━━━━━━━━\n` +
+      `Bets: ${stats.totalBets}\n` +
+      `Amount: ${stats.totalBetAmount}\n` +
+      `Payout: ${stats.totalPayout}\n` +
+      `P/L: ${stats.profitLoss}\n` +
+      `Won: ${stats.wonCount} | Lost: ${stats.lostCount}\n` +
+      `Users: ${stats.uniqueUsers}\n` +
+      `━━━━━━━━━━━━━━━━━━━━\n` +
+      `📊 Breakdown\n`;
+
+    for (const [key, d] of Object.entries(stats.breakdown)) {
+      msg += `${key}: ${d.count} bets, ${d.amount}\n`;
+    }
 
     await reply(ctx, msg);
   } catch (err) { replyWithError(ctx, err); }
 });
 
 bot.launch();
-console.log('Bot is running...');
+console.log('Bot running...');
 
 const http = require('http');
 const PORT = process.env.PORT || 3000;
 http.createServer((_, res) => res.end('ok')).listen(PORT, () => {
-  console.log(`Health server listening on port ${PORT}`);
+  console.log(`Health on port ${PORT}`);
 });
 
 process.once('SIGINT', () => bot.stop('SIGINT'));
