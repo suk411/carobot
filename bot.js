@@ -71,9 +71,10 @@ bot.start(async (ctx) => {
   ctx.reply(
     '✅ Ready to use!\n\n' +
     '🤖 Carobot\n\n' +
-    '👤 /u <id|mobile>\n' +
+    '👤 /ui <userId>\n' +
+    '👤 /um <mobile>\n' +
     '📊 /d [today|month|YYYY-MM-DD]\n' +
-    '📥 /dd <userId|mobile>\n' +
+    '📥 /dd <userId>\n' +
     '📥 /ddt <orderId>\n' +
     '📤 /ww <userId>\n' +
     '📤 /wwt <orderId>\n' +
@@ -111,15 +112,59 @@ async function replyWithError(ctx, err) {
   ctx.reply(reply);
 }
 
-bot.command('u', async (ctx) => {
-  const input = ctx.message.text.split(' ').slice(1).join(' ').trim();
-  if (!input) return ctx.reply('Usage: /u <userId or mobile>');
-
-  const params = /^\d{10,15}$/.test(input) && input.length > 6
-    ? { mobile: input } : { userId: input };
+bot.command('ui', async (ctx) => {
+  const input = ctx.message.text.split(' ')[1];
+  if (!input) return ctx.reply('Usage: /ui <userId>');
 
   try {
-    const res = await api.get('/user', { params });
+    const res = await api.get('/user', { params: { userId: input } });
+    const { user, account, paymentMethods, deviceInfo } = res.data;
+    const bank = paymentMethods?.bank;
+    const upi = paymentMethods?.upi;
+
+    let msg =
+      `👤 User #${user.userId}\n` +
+      `📱 ${user.mobile}\n` +
+      `━━━━━━━━━━━━━━━━━━━━\n` +
+      `Balance: ${account.balance}\n` +
+      `Freeze: ${account.freezeBalance}\n` +
+      `VIP: ${account.vipLevel}\n` +
+      `Status: ${account.status}\n` +
+      `Total Deposits: ${account.totalDeposits}\n` +
+      `Total Withdrawals: ${account.totalWithdrawals}\n`;
+
+    if (bank) {
+      msg += `━━━━━━━━━━━━━━━━━━━━\n` +
+        `🏦 Bank\n${bank.bankName}\n${bank.accountNo}\n${bank.ifsc}\n${bank.holderName}\n`;
+    }
+    if (upi) {
+      msg += `━━━━━━━━━━━━━━━━━━━━\n` +
+        `📱 UPI\n${upi.upiId}\n`;
+    }
+
+    if (account.turnover_batches?.length) {
+      msg += `━━━━━━━━━━━━━━━━━━━━\n📊 Turnover\n`;
+      account.turnover_batches.forEach(t => {
+        msg += `${t.source}: ${t.achieved}/${t.required}\n`;
+      });
+    }
+
+    msg += `━━━━━━━━━━━━━━━━━━━━\n` +
+      `🌐 Last IP: ${deviceInfo?.ip || '-'}\n` +
+      `📍 ${deviceInfo?.city || ''}\n` +
+      `Same IP Users: ${res.data.sameIpUsers}\n` +
+      `Created: ${fmt(user.createdAt)}`;
+
+    await reply(ctx, msg);
+  } catch (err) { replyWithError(ctx, err); }
+});
+
+bot.command('um', async (ctx) => {
+  const input = ctx.message.text.split(' ')[1];
+  if (!input) return ctx.reply('Usage: /um <mobile>');
+
+  try {
+    const res = await api.get('/user', { params: { mobile: input } });
     const { user, account, paymentMethods, deviceInfo } = res.data;
     const bank = paymentMethods?.bank;
     const upi = paymentMethods?.upi;
@@ -425,7 +470,8 @@ bot.command('rst', async (ctx) => {
   await bot.launch();
   await bot.telegram.setMyCommands([
     { command: 'start', description: 'Wake server and show menu' },
-    { command: 'u', description: 'Search user by ID or mobile' },
+    { command: 'ui', description: 'Search user by ID' },
+    { command: 'um', description: 'Search user by mobile' },
     { command: 'd', description: 'Dashboard (today/month/date)' },
     { command: 'dd', description: 'Deposits by userId or mobile' },
     { command: 'ddt', description: 'Deposit by order ID' },
