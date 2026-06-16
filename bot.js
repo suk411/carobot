@@ -50,7 +50,18 @@ bot.use((ctx, next) => {
   return next();
 });
 
-const WAKE_URL = process.env.SELF_URL || 'https://carobot-ers3.onrender.com/';
+const WAKE_URL = process.env.SELF_URL;
+
+bot.command('wakeup', async (ctx) => {
+  await ctx.replyWithChatAction('typing');
+  await ctx.reply('⏳ Sending wake request...');
+  try {
+    await axios.get(WAKE_URL, { timeout: 30000 });
+    await ctx.reply('✅ Wake request sent — server should be ready shortly');
+  } catch (e) {
+    await ctx.reply('⚠️ Wake request sent (server may still be starting)');
+  }
+});
 
 bot.start(async (ctx) => {
   await ctx.replyWithChatAction('typing');
@@ -60,15 +71,19 @@ bot.start(async (ctx) => {
   ctx.reply(
     '✅ Ready to use!\n\n' +
     '🤖 Carobot\n\n' +
-    '👤 /user <id|mobile>\n' +
-    '📊 /dashboard [today|month|YYYY-MM-DD]\n' +
-    '📥 /deposits <id|mobile|orderId>\n' +
-    '📤 /withdrawals <id|orderId>\n' +
-    '🔄 /transactions <id|orderId>\n' +
-    '🎯 /round\n' +
-    '🎲 /bets [page]\n' +
-    '📋 /rounds [page]\n' +
-    '📈 /roundstats <issueNumber>'
+    '👤 /u <id|mobile>\n' +
+    '📊 /d [today|month|YYYY-MM-DD]\n' +
+    '📥 /dd <userId|mobile>\n' +
+    '📥 /ddt <orderId>\n' +
+    '📤 /ww <userId>\n' +
+    '📤 /wwt <orderId>\n' +
+    '🔄 /tt <userId>\n' +
+    '🔄 /ttt <orderId>\n' +
+    '🎯 /r\n' +
+    '🎲 /b [page]\n' +
+    '📋 /rs [page]\n' +
+    '📈 /rst <issueNumber>\n' +
+    '🌐 /wakeup'
   );
 });
 
@@ -96,9 +111,9 @@ async function replyWithError(ctx, err) {
   ctx.reply(reply);
 }
 
-bot.command('user', async (ctx) => {
+bot.command('u', async (ctx) => {
   const input = ctx.message.text.split(' ').slice(1).join(' ').trim();
-  if (!input) return ctx.reply('Usage: /user <userId or mobile>');
+  if (!input) return ctx.reply('Usage: /u <userId or mobile>');
 
   const params = /^\d{10,15}$/.test(input) && input.length > 6
     ? { mobile: input } : { userId: input };
@@ -137,7 +152,7 @@ bot.command('user', async (ctx) => {
     }
 
     msg += `━━━━━━━━━━━━━━━━━━━━\n` +
-      `🌐 Last IP: ${deviceInfo?.ip || lastIp}\n` +
+      `🌐 Last IP: ${deviceInfo?.ip || '-'}\n` +
       `📍 ${deviceInfo?.city || ''}\n` +
       `Same IP Users: ${res.data.sameIpUsers}\n` +
       `Created: ${fmt(user.createdAt)}`;
@@ -146,7 +161,7 @@ bot.command('user', async (ctx) => {
   } catch (err) { replyWithError(ctx, err); }
 });
 
-bot.command('dashboard', async (ctx) => {
+bot.command('d', async (ctx) => {
   const period = ctx.message.text.split(' ')[1] || 'today';
   const params = /^\d{4}-\d{2}-\d{2}$/.test(period)
     ? { date: period }
@@ -180,26 +195,19 @@ bot.command('dashboard', async (ctx) => {
   } catch (err) { replyWithError(ctx, err); }
 });
 
-bot.command('deposits', async (ctx) => {
+bot.command('dd', async (ctx) => {
   const input = ctx.message.text.split(' ').slice(1).join(' ').trim();
-  if (!input) return ctx.reply('Usage: /deposits <userId or mobile or orderId>');
+  if (!input) return ctx.reply('Usage: /dd <userId or mobile>');
 
   const isMobile = /^\d{10,15}$/.test(input) && input.length > 6;
-  const isOrderId = /^DEP/i.test(input);
-  let params;
-  if (isOrderId) params = { orderId: input };
-  else if (isMobile) params = { mobile: input };
-  else params = { userId: input, limit: 10 };
+  const params = isMobile ? { mobile: input } : { userId: input, limit: 10 };
 
   try {
     const res = await api.get('/deposits', { params });
     const items = res.data.items || [];
     if (!items.length) return ctx.reply('No deposits found.');
 
-    let msg = isOrderId
-      ? `📥 Deposit\n\n`
-      : `📥 Deposits — User ${items[0].userId} (${res.data.total || items.length})\n\n`;
-
+    let msg = `📥 Deposits — User ${items[0].userId} (${res.data.total || items.length})\n\n`;
     items.slice(0, 10).forEach((d, i) => {
       if (items.length > 1) msg += `#${i + 1}\n`;
       msg += `${d.orderId}\n` +
@@ -212,22 +220,38 @@ bot.command('deposits', async (ctx) => {
   } catch (err) { replyWithError(ctx, err); }
 });
 
-bot.command('withdrawals', async (ctx) => {
+bot.command('ddt', async (ctx) => {
   const input = ctx.message.text.split(' ').slice(1).join(' ').trim();
-  if (!input) return ctx.reply('Usage: /withdrawals <userId or orderId>');
-
-  const isOrderId = /^WTH/i.test(input);
-  const params = isOrderId ? { orderId: input } : { userId: input, limit: 10 };
+  if (!input) return ctx.reply('Usage: /ddt <orderId>');
 
   try {
-    const res = await api.get('/withdrawals', { params });
+    const res = await api.get('/deposits', { params: { orderId: input } });
+    const items = res.data.items || [];
+    if (!items.length) return ctx.reply('No deposit found.');
+
+    const d = items[0];
+    let msg =
+      `📥 Deposit #${d.orderId}\n` +
+      `Amount: ${d.amount} (Received: ${d.receivedAmount})\n` +
+      `Status: ${d.status}\n` +
+      `Channel: ${d.channelName || '-'}\n` +
+      `User: ${d.userId}\n` +
+      `${fmt(d.createdAt)}`;
+
+    await reply(ctx, msg);
+  } catch (err) { replyWithError(ctx, err); }
+});
+
+bot.command('ww', async (ctx) => {
+  const input = ctx.message.text.split(' ').slice(1).join(' ').trim();
+  if (!input) return ctx.reply('Usage: /ww <userId>');
+
+  try {
+    const res = await api.get('/withdrawals', { params: { userId: input, limit: 10 } });
     const items = res.data.items || [];
     if (!items.length) return ctx.reply('No withdrawals found.');
 
-    let msg = isOrderId
-      ? `📤 Withdrawal\n\n`
-      : `📤 Withdrawals — User ${items[0].userId} (${res.data.total || items.length})\n\n`;
-
+    let msg = `📤 Withdrawals — User ${items[0].userId} (${res.data.total || items.length})\n\n`;
     items.slice(0, 10).forEach((w, i) => {
       if (items.length > 1) msg += `#${i + 1}\n`;
       msg += `${w.orderId}\n` +
@@ -240,19 +264,38 @@ bot.command('withdrawals', async (ctx) => {
   } catch (err) { replyWithError(ctx, err); }
 });
 
-bot.command('transactions', async (ctx) => {
+bot.command('wwt', async (ctx) => {
   const input = ctx.message.text.split(' ').slice(1).join(' ').trim();
-  if (!input) return ctx.reply('Usage: /transactions <userId or orderId>');
-
-  const isOrderId = /^(DEP|WTH|WGB)/i.test(input);
-  const params = isOrderId ? { orderId: input, limit: 25 } : { userId: input, limit: 25 };
+  if (!input) return ctx.reply('Usage: /wwt <orderId>');
 
   try {
-    const res = await api.get('/transactions', { params });
+    const res = await api.get('/withdrawals', { params: { orderId: input } });
+    const items = res.data.items || [];
+    if (!items.length) return ctx.reply('No withdrawal found.');
+
+    const w = items[0];
+    let msg =
+      `📤 Withdrawal #${w.orderId}\n` +
+      `Amount: ${w.amount} (Charge: ${w.charge})\n` +
+      `Status: ${w.status}\n` +
+      `Channel: ${w.channelName || '-'}\n` +
+      `User: ${w.userId}\n` +
+      `${fmt(w.createdAt)}`;
+
+    await reply(ctx, msg);
+  } catch (err) { replyWithError(ctx, err); }
+});
+
+bot.command('tt', async (ctx) => {
+  const input = ctx.message.text.split(' ').slice(1).join(' ').trim();
+  if (!input) return ctx.reply('Usage: /tt <userId>');
+
+  try {
+    const res = await api.get('/transactions', { params: { userId: input, limit: 25 } });
     const items = res.data.items || [];
     if (!items.length) return ctx.reply('No transactions found.');
 
-    let msg = `🔄 Transactions${isOrderId ? '' : ` — User ${items[0].userId}`} (${res.data.total || items.length})\n\n`;
+    let msg = `🔄 Transactions — User ${items[0].userId} (${res.data.total || items.length})\n\n`;
     items.slice(0, 15).forEach(t => {
       msg += `${t.type} ${t.amount} — ${t.status}\n` +
         `Bal: ${t.balanceAfter} | ${t.orderId}\n` +
@@ -263,7 +306,27 @@ bot.command('transactions', async (ctx) => {
   } catch (err) { replyWithError(ctx, err); }
 });
 
-bot.command('round', async (ctx) => {
+bot.command('ttt', async (ctx) => {
+  const input = ctx.message.text.split(' ').slice(1).join(' ').trim();
+  if (!input) return ctx.reply('Usage: /ttt <orderId>');
+
+  try {
+    const res = await api.get('/transactions', { params: { orderId: input, limit: 25 } });
+    const items = res.data.items || [];
+    if (!items.length) return ctx.reply('No transactions found.');
+
+    let msg = `🔄 Transaction #${input}\n\n`;
+    items.slice(0, 5).forEach(t => {
+      msg += `${t.type} ${t.amount} — ${t.status}\n` +
+        `Bal: ${t.balanceAfter}\n` +
+        `${t.remark || '-'}\n${fmt(t.createdAt)}\n\n`;
+    });
+
+    await reply(ctx, msg);
+  } catch (err) { replyWithError(ctx, err); }
+});
+
+bot.command('r', async (ctx) => {
   try {
     const res = await api.get('/current-round');
     const { round, stats } = res.data;
@@ -289,7 +352,7 @@ bot.command('round', async (ctx) => {
   } catch (err) { replyWithError(ctx, err); }
 });
 
-bot.command('bets', async (ctx) => {
+bot.command('b', async (ctx) => {
   const page = ctx.message.text.split(' ')[1] || 1;
 
   try {
@@ -306,7 +369,7 @@ bot.command('bets', async (ctx) => {
   } catch (err) { replyWithError(ctx, err); }
 });
 
-bot.command('rounds', async (ctx) => {
+bot.command('rs', async (ctx) => {
   const page = ctx.message.text.split(' ')[1] || 1;
 
   try {
@@ -327,9 +390,9 @@ bot.command('rounds', async (ctx) => {
   } catch (err) { replyWithError(ctx, err); }
 });
 
-bot.command('roundstats', async (ctx) => {
+bot.command('rst', async (ctx) => {
   const issue = ctx.message.text.split(' ')[1];
-  if (!issue) return ctx.reply('Usage: /roundstats <issueNumber>');
+  if (!issue) return ctx.reply('Usage: /rst <issueNumber>');
 
   try {
     const res = await api.get(`/round-stats/${issue}`);
@@ -362,15 +425,19 @@ bot.command('roundstats', async (ctx) => {
   await bot.launch();
   await bot.telegram.setMyCommands([
     { command: 'start', description: 'Wake server and show menu' },
-    { command: 'user', description: 'Search user by ID or mobile' },
-    { command: 'dashboard', description: 'Dashboard (today/month/date)' },
-    { command: 'deposits', description: 'Search deposits by userId/mobile/orderId' },
-    { command: 'withdrawals', description: 'Search withdrawals by userId/orderId' },
-    { command: 'transactions', description: 'Search transactions by userId/orderId' },
-    { command: 'round', description: 'Current round info' },
-    { command: 'bets', description: 'Current round bets' },
-    { command: 'rounds', description: 'Settled rounds' },
-    { command: 'roundstats', description: 'Round stats by issue number' },
+    { command: 'u', description: 'Search user by ID or mobile' },
+    { command: 'd', description: 'Dashboard (today/month/date)' },
+    { command: 'dd', description: 'Deposits by userId or mobile' },
+    { command: 'ddt', description: 'Deposit by order ID' },
+    { command: 'ww', description: 'Withdrawals by userId' },
+    { command: 'wwt', description: 'Withdrawal by order ID' },
+    { command: 'tt', description: 'Transactions by userId' },
+    { command: 'ttt', description: 'Transaction by order ID' },
+    { command: 'r', description: 'Current round info' },
+    { command: 'b', description: 'Current round bets' },
+    { command: 'rs', description: 'Settled rounds' },
+    { command: 'rst', description: 'Round stats by issue number' },
+    { command: 'wakeup', description: 'Wake the Render server' },
   ]);
   console.log('Bot commands registered');
 })().catch(err => {
