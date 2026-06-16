@@ -127,11 +127,18 @@ bot.command('ui', async (ctx) => {
       `📱 ${user.mobile}\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
       `Balance: ${account.balance}\n` +
-      `Freeze: ${account.freezeBalance}\n` +
-      `VIP: ${account.vipLevel}\n` +
-      `Status: ${account.status}\n` +
+      `Withdrawable: ${account.withdrawable}\n` +
+      `VIP: ${account.vipLevel} (since ${fmt(account.vipSince)})\n` +
+      `Status: ${account.status} ${account.statusRemark ? '(' + account.statusRemark + ')' : ''}\n` +
       `Total Deposits: ${account.totalDeposits}\n` +
-      `Total Withdrawals: ${account.totalWithdrawals}\n`;
+      `Pending Bonus: ${account.pendingUpgradeBonus}\n` +
+      `Last Weekly Bonus: ${account.lastWeeklyBonusAt ? fmt(account.lastWeeklyBonusAt) : '-'}\n` +
+      `━━━━━━━━━━━━━━━━━━━━\n` +
+      `📊 Turnover\n` +
+      `Required: ${account.turnover_requirement}\n` +
+      `Completed: ${account.total_turnover_completed}\n` +
+      `Last Calc: ${account.lastTurnoverCalcAt ? fmt(account.lastTurnoverCalcAt) : '-'}\n` +
+      `Last Bet: ${account.lastBetCalcAt ? fmt(account.lastBetCalcAt) : '-'}\n`;
 
     if (bank) {
       msg += `━━━━━━━━━━━━━━━━━━━━\n` +
@@ -140,13 +147,6 @@ bot.command('ui', async (ctx) => {
     if (upi) {
       msg += `━━━━━━━━━━━━━━━━━━━━\n` +
         `📱 UPI\n${upi.upiId}\n`;
-    }
-
-    if (account.turnover_batches?.length) {
-      msg += `━━━━━━━━━━━━━━━━━━━━\n📊 Turnover\n`;
-      account.turnover_batches.forEach(t => {
-        msg += `${t.source}: ${t.achieved}/${t.required}\n`;
-      });
     }
 
     msg += `━━━━━━━━━━━━━━━━━━━━\n` +
@@ -174,11 +174,18 @@ bot.command('um', async (ctx) => {
       `📱 ${user.mobile}\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
       `Balance: ${account.balance}\n` +
-      `Freeze: ${account.freezeBalance}\n` +
-      `VIP: ${account.vipLevel}\n` +
-      `Status: ${account.status}\n` +
+      `Withdrawable: ${account.withdrawable}\n` +
+      `VIP: ${account.vipLevel} (since ${fmt(account.vipSince)})\n` +
+      `Status: ${account.status} ${account.statusRemark ? '(' + account.statusRemark + ')' : ''}\n` +
       `Total Deposits: ${account.totalDeposits}\n` +
-      `Total Withdrawals: ${account.totalWithdrawals}\n`;
+      `Pending Bonus: ${account.pendingUpgradeBonus}\n` +
+      `Last Weekly Bonus: ${account.lastWeeklyBonusAt ? fmt(account.lastWeeklyBonusAt) : '-'}\n` +
+      `━━━━━━━━━━━━━━━━━━━━\n` +
+      `📊 Turnover\n` +
+      `Required: ${account.turnover_requirement}\n` +
+      `Completed: ${account.total_turnover_completed}\n` +
+      `Last Calc: ${account.lastTurnoverCalcAt ? fmt(account.lastTurnoverCalcAt) : '-'}\n` +
+      `Last Bet: ${account.lastBetCalcAt ? fmt(account.lastBetCalcAt) : '-'}\n`;
 
     if (bank) {
       msg += `━━━━━━━━━━━━━━━━━━━━\n` +
@@ -187,13 +194,6 @@ bot.command('um', async (ctx) => {
     if (upi) {
       msg += `━━━━━━━━━━━━━━━━━━━━\n` +
         `📱 UPI\n${upi.upiId}\n`;
-    }
-
-    if (account.turnover_batches?.length) {
-      msg += `━━━━━━━━━━━━━━━━━━━━\n📊 Turnover\n`;
-      account.turnover_batches.forEach(t => {
-        msg += `${t.source}: ${t.achieved}/${t.required}\n`;
-      });
     }
 
     msg += `━━━━━━━━━━━━━━━━━━━━\n` +
