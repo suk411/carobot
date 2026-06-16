@@ -100,6 +100,14 @@ async function reply(ctx, msg) {
   }
 }
 
+async function replyHTML(ctx, msg) {
+  const max = 4096;
+  if (msg.length <= max) return ctx.replyWithHTML(msg);
+  for (let i = 0; i < msg.length; i += max) {
+    await ctx.replyWithHTML(msg.slice(i, i + max));
+  }
+}
+
 async function replyWithError(ctx, err) {
   const status = err.response?.status;
   const data = err.response?.data;
@@ -252,16 +260,20 @@ bot.command('dd', async (ctx) => {
     const items = res.data.items || [];
     if (!items.length) return ctx.reply('No deposits found.');
 
-    let msg = `📥 Deposits — User ${items[0].userId} (${res.data.total || items.length})\n\n`;
+    let msg =
+      `📥 <b>Deposits</b> — User <code>${items[0].userId}</code>\n` +
+      `━━━━━━━━━━━━━━━━━━━━\n` +
+      `Total: <code>${res.data.total || items.length}</code>\n\n`;
+
     items.slice(0, 10).forEach((d, i) => {
-      if (items.length > 1) msg += `#${i + 1}\n`;
-      msg += `${d.orderId}\n` +
-        `${d.amount} (Received: ${d.receivedAmount})\n` +
-        `${d.status} — ${d.channelName || '-'}\n` +
+      if (items.length > 1) msg += `<b>#${i + 1}</b>\n`;
+      msg += `<code>${d.orderId}</code>\n` +
+        `₹<code>${d.amount}</code>  (Received: ₹<code>${d.receivedAmount}</code>)\n` +
+        `${d.status}  —  ${d.channelName || '-'}\n` +
         `${fmt(d.createdAt)}\n\n`;
     });
 
-    await reply(ctx, msg);
+    await replyHTML(ctx, msg);
   } catch (err) { replyWithError(ctx, err); }
 });
 
@@ -275,15 +287,19 @@ bot.command('ddt', async (ctx) => {
     if (!items.length) return ctx.reply('No deposit found.');
 
     const d = items[0];
-    let msg =
-      `📥 Deposit #${d.orderId}\n` +
-      `Amount: ${d.amount} (Received: ${d.receivedAmount})\n` +
-      `Status: ${d.status}\n` +
-      `Channel: ${d.channelName || '-'}\n` +
-      `User: ${d.userId}\n` +
-      `${fmt(d.createdAt)}`;
+    const statusIcon = d.status === 'SUCCESS' ? '✅' : d.status === 'PENDING' ? '⏳' : d.status === 'FAILED' ? '❌' : '❓';
 
-    await reply(ctx, msg);
+    let msg =
+      `📥 <b>Deposit</b>\n` +
+      `━━━━━━━━━━━━━━━━━━━━\n` +
+      `<b>Order</b>   <code>${d.orderId}</code>\n` +
+      `<b>User</b>    <code>${d.userId}</code>\n` +
+      `<b>Amount</b>  ₹<code>${d.amount}</code>\n` +
+      `<b>Received</b> ₹<code>${d.receivedAmount}</code>\n` +
+      `<b>Status</b>  ${statusIcon} ${d.status}  —  ${d.channelName || '-'}\n` +
+      `<b>Date</b>    ${fmt(d.createdAt)}`;
+
+    await replyHTML(ctx, msg);
   } catch (err) { replyWithError(ctx, err); }
 });
 
