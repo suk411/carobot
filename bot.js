@@ -131,39 +131,41 @@ bot.command('ui', async (ctx) => {
     const upi = paymentMethods?.upi;
 
     let msg =
-      `👤 User #${user.userId}\n` +
-      `📱 ${user.mobile}\n` +
+      `👤 <b>User #${user.userId}</b>\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
-      `Balance: ${account.balance}\n` +
-      `Withdrawable: ${account.withdrawable}\n` +
-      `VIP: ${account.vipLevel} (since ${fmt(account.vipSince)})\n` +
-      `Status: ${account.status} ${account.statusRemark ? '(' + account.statusRemark + ')' : ''}\n` +
-      `Total Deposits: ${account.totalDeposits}\n` +
-      `Pending Bonus: ${account.pendingUpgradeBonus}\n` +
-      `Last Weekly Bonus: ${account.lastWeeklyBonusAt ? fmt(account.lastWeeklyBonusAt) : '-'}\n` +
+      `<b>Mobile</b>      <code>${user.mobile}</code>\n` +
+      `<b>Balance</b>     ₹<code>${account.balance}</code>\n` +
+      `<b>Withdrawable</b> ₹<code>${account.withdrawable}</code>\n` +
+      `<b>VIP</b>         ${account.vipLevel} (since ${fmt(account.vipSince)})\n` +
+      `<b>Status</b>      ${account.status}${account.statusRemark ? ' (' + account.statusRemark + ')' : ''}\n` +
+      `<b>Deposits</b>    ₹<code>${account.totalDeposits}</code>\n` +
+      `<b>Pend Bonus</b>  ₹<code>${account.pendingUpgradeBonus}</code>\n` +
+      `<b>Last Bonus</b>  ${account.lastWeeklyBonusAt ? fmt(account.lastWeeklyBonusAt) : '-'}\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
-      `📊 Turnover\n` +
-      `Required: ${account.turnover_requirement}\n` +
-      `Completed: ${account.total_turnover_completed}\n` +
-      `Last Calc: ${account.lastTurnoverCalcAt ? fmt(account.lastTurnoverCalcAt) : '-'}\n` +
-      `Last Bet: ${account.lastBetCalcAt ? fmt(account.lastBetCalcAt) : '-'}\n`;
+      `<b>Turnover</b>\n` +
+      `<b>Required</b>    <code>${account.turnover_requirement}</code>\n` +
+      `<b>Completed</b>   <code>${account.total_turnover_completed}</code>\n` +
+      `<b>Last Calc</b>   ${account.lastTurnoverCalcAt ? fmt(account.lastTurnoverCalcAt) : '-'}\n` +
+      `<b>Last Bet</b>    ${account.lastBetCalcAt ? fmt(account.lastBetCalcAt) : '-'}\n`;
 
     if (bank) {
       msg += `━━━━━━━━━━━━━━━━━━━━\n` +
-        `🏦 Bank\n${bank.bankName}\n${bank.accountNo}\n${bank.ifsc}\n${bank.holderName}\n`;
+        `🏦 <b>Bank</b>\n` +
+        `<code>${bank.bankName}</code> | <code>${bank.accountNo}</code>\n` +
+        `<code>${bank.ifsc}</code> | ${bank.holderName}\n`;
     }
     if (upi) {
       msg += `━━━━━━━━━━━━━━━━━━━━\n` +
-        `📱 UPI\n${upi.upiId}\n`;
+        `📱 <b>UPI</b>\n<code>${upi.upiId}</code>\n`;
     }
 
     msg += `━━━━━━━━━━━━━━━━━━━━\n` +
-      `🌐 Last IP: ${deviceInfo?.ip || '-'}\n` +
-      `📍 ${deviceInfo?.city || ''}\n` +
-      `Same IP Users: ${res.data.sameIpUsers}\n` +
-      `Created: ${fmt(user.createdAt)}`;
+      `<b>Last IP</b>     ${deviceInfo?.ip || '-'}\n` +
+      `<b>City</b>        ${deviceInfo?.city || '-'}\n` +
+      `<b>Same IP</b>     ${res.data.sameIpUsers} users\n` +
+      `<b>Created</b>     ${fmt(user.createdAt)}`;
 
-    await reply(ctx, msg);
+    await replyHTML(ctx, msg);
   } catch (err) { replyWithError(ctx, err); }
 });
 
@@ -178,39 +180,41 @@ bot.command('um', async (ctx) => {
     const upi = paymentMethods?.upi;
 
     let msg =
-      `👤 User #${user.userId}\n` +
-      `📱 ${user.mobile}\n` +
+      `👤 <b>User #${user.userId}</b>\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
-      `Balance: ${account.balance}\n` +
-      `Withdrawable: ${account.withdrawable}\n` +
-      `VIP: ${account.vipLevel} (since ${fmt(account.vipSince)})\n` +
-      `Status: ${account.status} ${account.statusRemark ? '(' + account.statusRemark + ')' : ''}\n` +
-      `Total Deposits: ${account.totalDeposits}\n` +
-      `Pending Bonus: ${account.pendingUpgradeBonus}\n` +
-      `Last Weekly Bonus: ${account.lastWeeklyBonusAt ? fmt(account.lastWeeklyBonusAt) : '-'}\n` +
+      `<b>Mobile</b>      <code>${user.mobile}</code>\n` +
+      `<b>Balance</b>     ₹<code>${account.balance}</code>\n` +
+      `<b>Withdrawable</b> ₹<code>${account.withdrawable}</code>\n` +
+      `<b>VIP</b>         ${account.vipLevel} (since ${fmt(account.vipSince)})\n` +
+      `<b>Status</b>      ${account.status}${account.statusRemark ? ' (' + account.statusRemark + ')' : ''}\n` +
+      `<b>Deposits</b>    ₹<code>${account.totalDeposits}</code>\n` +
+      `<b>Pend Bonus</b>  ₹<code>${account.pendingUpgradeBonus}</code>\n` +
+      `<b>Last Bonus</b>  ${account.lastWeeklyBonusAt ? fmt(account.lastWeeklyBonusAt) : '-'}\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
-      `📊 Turnover\n` +
-      `Required: ${account.turnover_requirement}\n` +
-      `Completed: ${account.total_turnover_completed}\n` +
-      `Last Calc: ${account.lastTurnoverCalcAt ? fmt(account.lastTurnoverCalcAt) : '-'}\n` +
-      `Last Bet: ${account.lastBetCalcAt ? fmt(account.lastBetCalcAt) : '-'}\n`;
+      `<b>Turnover</b>\n` +
+      `<b>Required</b>    <code>${account.turnover_requirement}</code>\n` +
+      `<b>Completed</b>   <code>${account.total_turnover_completed}</code>\n` +
+      `<b>Last Calc</b>   ${account.lastTurnoverCalcAt ? fmt(account.lastTurnoverCalcAt) : '-'}\n` +
+      `<b>Last Bet</b>    ${account.lastBetCalcAt ? fmt(account.lastBetCalcAt) : '-'}\n`;
 
     if (bank) {
       msg += `━━━━━━━━━━━━━━━━━━━━\n` +
-        `🏦 Bank\n${bank.bankName}\n${bank.accountNo}\n${bank.ifsc}\n${bank.holderName}\n`;
+        `🏦 <b>Bank</b>\n` +
+        `<code>${bank.bankName}</code> | <code>${bank.accountNo}</code>\n` +
+        `<code>${bank.ifsc}</code> | ${bank.holderName}\n`;
     }
     if (upi) {
       msg += `━━━━━━━━━━━━━━━━━━━━\n` +
-        `📱 UPI\n${upi.upiId}\n`;
+        `📱 <b>UPI</b>\n<code>${upi.upiId}</code>\n`;
     }
 
     msg += `━━━━━━━━━━━━━━━━━━━━\n` +
-      `🌐 Last IP: ${deviceInfo?.ip || '-'}\n` +
-      `📍 ${deviceInfo?.city || ''}\n` +
-      `Same IP Users: ${res.data.sameIpUsers}\n` +
-      `Created: ${fmt(user.createdAt)}`;
+      `<b>Last IP</b>     ${deviceInfo?.ip || '-'}\n` +
+      `<b>City</b>        ${deviceInfo?.city || '-'}\n` +
+      `<b>Same IP</b>     ${res.data.sameIpUsers} users\n` +
+      `<b>Created</b>     ${fmt(user.createdAt)}`;
 
-    await reply(ctx, msg);
+    await replyHTML(ctx, msg);
   } catch (err) { replyWithError(ctx, err); }
 });
 
@@ -225,26 +229,26 @@ bot.command('d', async (ctx) => {
     const { overview, deposits, withdrawals, agentCommission } = res.data;
 
     let msg =
-      `📊 Dashboard (${res.data.period})\n` +
+      `📊 <b>Dashboard</b> (${res.data.period})\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
-      `👥 Users: ${overview.totalUsers} (New: ${overview.newUsers})\n` +
+      `<b>Users</b>       <code>${overview.totalUsers}</code> (New: <code>${overview.newUsers}</code>)\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
-      `📥 Deposits: ${deposits.total} (${deposits.count}) Pending: ${deposits.pendingCount}\n` +
+      `<b>Deposits</b>    ₹<code>${deposits.total}</code> (<code>${deposits.count}</code>)  Pending: <code>${deposits.pendingCount}</code>\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
-      `📤 Withdrawals: ${withdrawals.total} (${withdrawals.count})\n` +
-      `Charge: ${withdrawals.chargeTotal}\n` +
-      `✅ Success: ${withdrawals.success.count} (${withdrawals.success.total})\n` +
-      `⏳ Pending: ${withdrawals.pending.count} (${withdrawals.pending.total})\n` +
-      `❌ Failed: ${withdrawals.failed.count} (${withdrawals.failed.total})\n`;
+      `<b>Withdrawals</b> ₹<code>${withdrawals.total}</code> (<code>${withdrawals.count}</code>)\n` +
+      `<b>Charge</b>      ₹<code>${withdrawals.chargeTotal}</code>\n` +
+      `✅ Success: <code>${withdrawals.success.count}</code> (₹<code>${withdrawals.success.total}</code>)\n` +
+      `⏳ Pending: <code>${withdrawals.pending.count}</code> (₹<code>${withdrawals.pending.total}</code>)\n` +
+      `❌ Failed:  <code>${withdrawals.failed.count}</code> (₹<code>${withdrawals.failed.total}</code>)\n`;
 
     for (const [st, d] of Object.entries(withdrawals.byStatus)) {
-      msg += `   ${st}: ${d.count} (${d.total})\n`;
+      msg += `   ${st}: <code>${d.count}</code> (₹<code>${d.total}</code>)\n`;
     }
 
     msg += `━━━━━━━━━━━━━━━━━━━━\n` +
-      `💰 Agent: ${agentCommission.total} (${agentCommission.count})`;
+      `<b>Agent Comm</b>  ₹<code>${agentCommission.total}</code> (<code>${agentCommission.count}</code>)`;
 
-    await reply(ctx, msg);
+    await replyHTML(ctx, msg);
   } catch (err) { replyWithError(ctx, err); }
 });
 
@@ -312,16 +316,20 @@ bot.command('ww', async (ctx) => {
     const items = res.data.items || [];
     if (!items.length) return ctx.reply('No withdrawals found.');
 
-    let msg = `📤 Withdrawals — User ${items[0].userId} (${res.data.total || items.length})\n\n`;
+    let msg =
+      `📤 <b>Withdrawals</b> — User <code>${items[0].userId}</code>\n` +
+      `━━━━━━━━━━━━━━━━━━━━\n` +
+      `Total: <code>${res.data.total || items.length}</code>\n\n`;
+
     items.slice(0, 10).forEach((w, i) => {
-      if (items.length > 1) msg += `#${i + 1}\n`;
-      msg += `${w.orderId}\n` +
-        `${w.amount} (Charge: ${w.charge})\n` +
-        `${w.status} — ${w.channelName || '-'}\n` +
+      if (items.length > 1) msg += `<b>#${i + 1}</b>\n`;
+      msg += `<code>${w.orderId}</code>\n` +
+        `₹<code>${w.amount}</code>  (Charge: ₹<code>${w.charge}</code>)\n` +
+        `${w.status}  —  ${w.channelName || '-'}\n` +
         `${fmt(w.createdAt)}\n\n`;
     });
 
-    await reply(ctx, msg);
+    await replyHTML(ctx, msg);
   } catch (err) { replyWithError(ctx, err); }
 });
 
@@ -335,15 +343,19 @@ bot.command('wwt', async (ctx) => {
     if (!items.length) return ctx.reply('No withdrawal found.');
 
     const w = items[0];
-    let msg =
-      `📤 Withdrawal #${w.orderId}\n` +
-      `Amount: ${w.amount} (Charge: ${w.charge})\n` +
-      `Status: ${w.status}\n` +
-      `Channel: ${w.channelName || '-'}\n` +
-      `User: ${w.userId}\n` +
-      `${fmt(w.createdAt)}`;
+    const statusIcon = w.status === 'SUCCESS' ? '✅' : w.status === 'PENDING' ? '⏳' : w.status === 'FAILED' ? '❌' : '❓';
 
-    await reply(ctx, msg);
+    let msg =
+      `📤 <b>Withdrawal</b>\n` +
+      `━━━━━━━━━━━━━━━━━━━━\n` +
+      `<b>Order</b>   <code>${w.orderId}</code>\n` +
+      `<b>User</b>    <code>${w.userId}</code>\n` +
+      `<b>Amount</b>  ₹<code>${w.amount}</code>\n` +
+      `<b>Charge</b>  ₹<code>${w.charge}</code>\n` +
+      `<b>Status</b>  ${statusIcon} ${w.status}  —  ${w.channelName || '-'}\n` +
+      `<b>Date</b>    ${fmt(w.createdAt)}`;
+
+    await replyHTML(ctx, msg);
   } catch (err) { replyWithError(ctx, err); }
 });
 
@@ -356,14 +368,19 @@ bot.command('tt', async (ctx) => {
     const items = res.data.items || [];
     if (!items.length) return ctx.reply('No transactions found.');
 
-    let msg = `🔄 Transactions — User ${items[0].userId} (${res.data.total || items.length})\n\n`;
+    let msg =
+      `🔄 <b>Transactions</b> — User <code>${items[0].userId}</code>\n` +
+      `━━━━━━━━━━━━━━━━━━━━\n` +
+      `Total: <code>${res.data.total || items.length}</code>\n\n`;
+
     items.slice(0, 15).forEach(t => {
-      msg += `${t.type} ${t.amount} — ${t.status}\n` +
-        `Bal: ${t.balanceAfter} | ${t.orderId}\n` +
-        `${t.remark || '-'}\n${fmt(t.createdAt)}\n\n`;
+      msg += `<b>${t.type}</b>  ₹<code>${t.amount}</code>  —  ${t.status}\n` +
+        `Bal: <code>${t.balanceAfter}</code>  |  <code>${t.orderId}</code>\n` +
+        `<i>${t.remark || '-'}</i>\n` +
+        `${fmt(t.createdAt)}\n\n`;
     });
 
-    await reply(ctx, msg);
+    await replyHTML(ctx, msg);
   } catch (err) { replyWithError(ctx, err); }
 });
 
@@ -376,14 +393,18 @@ bot.command('ttt', async (ctx) => {
     const items = res.data.items || [];
     if (!items.length) return ctx.reply('No transactions found.');
 
-    let msg = `🔄 Transaction #${input}\n\n`;
+    let msg =
+      `🔄 <b>Transaction</b>  <code>${input}</code>\n` +
+      `━━━━━━━━━━━━━━━━━━━━\n\n`;
+
     items.slice(0, 5).forEach(t => {
-      msg += `${t.type} ${t.amount} — ${t.status}\n` +
-        `Bal: ${t.balanceAfter}\n` +
-        `${t.remark || '-'}\n${fmt(t.createdAt)}\n\n`;
+      msg += `<b>${t.type}</b>  ₹<code>${t.amount}</code>  —  ${t.status}\n` +
+        `Bal: <code>${t.balanceAfter}</code>\n` +
+        `<i>${t.remark || '-'}</i>\n` +
+        `${fmt(t.createdAt)}\n\n`;
     });
 
-    await reply(ctx, msg);
+    await replyHTML(ctx, msg);
   } catch (err) { replyWithError(ctx, err); }
 });
 
@@ -393,23 +414,24 @@ bot.command('r', async (ctx) => {
     const { round, stats } = res.data;
 
     let msg =
-      `🎯 Round #${round.issueNumber}\n` +
-      `Status: ${round.status}\n` +
-      `Start: ${fmt(round.startTime)}\n` +
-      `End: ${fmt(round.endTime)}\n` +
+      `🎯 <b>Round #${round.issueNumber}</b>\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
-      `📊 Stats\n` +
-      `Bets: ${stats.totalBets}\n` +
-      `Amount: ${stats.totalBetAmount}\n` +
-      `Users: ${stats.uniqueUsers}\n` +
+      `<b>Status</b>  ${round.status}\n` +
+      `<b>Start</b>   ${fmt(round.startTime)}\n` +
+      `<b>End</b>     ${fmt(round.endTime)}\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
-      `📈 Breakdown\n`;
+      `<b>Stats</b>\n` +
+      `<b>Bets</b>    <code>${stats.totalBets}</code>\n` +
+      `<b>Amount</b>  ₹<code>${stats.totalBetAmount}</code>\n` +
+      `<b>Users</b>   <code>${stats.uniqueUsers}</code>\n` +
+      `━━━━━━━━━━━━━━━━━━━━\n` +
+      `<b>Breakdown</b>\n`;
 
     for (const [key, val] of Object.entries(stats.breakdown)) {
-      msg += `${key}: ${val}\n`;
+      msg += `${key}: ₹<code>${val}</code>\n`;
     }
 
-    await reply(ctx, msg);
+    await replyHTML(ctx, msg);
   } catch (err) { replyWithError(ctx, err); }
 });
 
@@ -421,12 +443,17 @@ bot.command('b', async (ctx) => {
     const items = res.data.items || [];
     if (!items.length) return ctx.reply('No bets found.');
 
-    let msg = `🎲 Current Round Bets (Page ${res.data.page}/${Math.ceil(res.data.total / res.data.limit)})\n\n`;
+    let msg =
+      `🎲 <b>Bets</b> (Page ${res.data.page}/${Math.ceil(res.data.total / res.data.limit)})\n` +
+      `━━━━━━━━━━━━━━━━━━━━\n\n`;
+
     items.slice(0, 20).forEach(b => {
-      msg += `#${b.userId}\n${b.selectType} — ${b.betAmount} (${b.status})\n${fmt(b.createdAt)}\n\n`;
+      msg += `<b>#${b.userId}</b>\n` +
+        `${b.selectType}  —  ₹<code>${b.betAmount}</code>  (${b.status})\n` +
+        `${fmt(b.createdAt)}\n\n`;
     });
 
-    await reply(ctx, msg);
+    await replyHTML(ctx, msg);
   } catch (err) { replyWithError(ctx, err); }
 });
 
@@ -438,16 +465,19 @@ bot.command('rs', async (ctx) => {
     const issues = res.data.issues || [];
     if (!issues.length) return ctx.reply('No rounds found.');
 
-    let msg = `📋 Settled Rounds (Page ${res.data.page})\n\n`;
+    let msg =
+      `📋 <b>Settled Rounds</b> (Page ${res.data.page})\n` +
+      `━━━━━━━━━━━━━━━━━━━━\n\n`;
+
     issues.forEach(r => {
-      msg += `#${r.issueNumber}\n` +
-        `Result: ${r.result} (${r.color}/${r.size})\n` +
-        `Bets: ${r.totalBets} | Amount: ${r.totalBetAmount}\n` +
-        `P/L: ${r.profitLoss}\n` +
+      msg += `<b>#${r.issueNumber}</b>\n` +
+        `Result: ${r.result}  (${r.color}/${r.size})\n` +
+        `Bets: <code>${r.totalBets}</code>  |  ₹<code>${r.totalBetAmount}</code>\n` +
+        `<b>P/L:</b> ₹<code>${r.profitLoss}</code>\n` +
         `${fmt(r.createdAt)}\n\n`;
     });
 
-    await reply(ctx, msg);
+    await replyHTML(ctx, msg);
   } catch (err) { replyWithError(ctx, err); }
 });
 
@@ -460,25 +490,26 @@ bot.command('rst', async (ctx) => {
     const { issue: round, stats } = res.data;
 
     let msg =
-      `📈 Round #${round.issueNumber}\n` +
-      `Result: ${round.result} (${round.color}/${round.size})\n` +
-      `Status: ${round.status}\n` +
-      `${fmt(round.createdAt)}\n` +
+      `📈 <b>Round #${round.issueNumber}</b>\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
-      `Bets: ${stats.totalBets}\n` +
-      `Amount: ${stats.totalBetAmount}\n` +
-      `Payout: ${stats.totalPayout}\n` +
-      `P/L: ${stats.profitLoss}\n` +
-      `Won: ${stats.wonCount} | Lost: ${stats.lostCount}\n` +
-      `Users: ${stats.uniqueUsers}\n` +
+      `<b>Result</b>  ${round.result}  (${round.color}/${round.size})\n` +
+      `<b>Status</b>  ${round.status}\n` +
+      `<b>Date</b>    ${fmt(round.createdAt)}\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
-      `📊 Breakdown\n`;
+      `<b>Bets</b>    <code>${stats.totalBets}</code>\n` +
+      `<b>Amount</b>  ₹<code>${stats.totalBetAmount}</code>\n` +
+      `<b>Payout</b>  ₹<code>${stats.totalPayout}</code>\n` +
+      `<b>P/L</b>     ₹<code>${stats.profitLoss}</code>\n` +
+      `Won: <code>${stats.wonCount}</code>  |  Lost: <code>${stats.lostCount}</code>\n` +
+      `<b>Users</b>   <code>${stats.uniqueUsers}</code>\n` +
+      `━━━━━━━━━━━━━━━━━━━━\n` +
+      `<b>Breakdown</b>\n`;
 
     for (const [key, d] of Object.entries(stats.breakdown)) {
-      msg += `${key}: ${d.count} bets, ${d.amount}\n`;
+      msg += `${key}: <code>${d.count}</code> bets, ₹<code>${d.amount}</code>\n`;
     }
 
-    await reply(ctx, msg);
+    await replyHTML(ctx, msg);
   } catch (err) { replyWithError(ctx, err); }
 });
 
