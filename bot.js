@@ -63,6 +63,22 @@ bot.command('wakeup', async (ctx) => {
   }
 });
 
+bot.command('gmsg', async (ctx) => {
+  if (!ownerChatIds.includes(ctx.chat.id)) return ctx.reply('Only owner can use this command.');
+
+  const msg = ctx.message.text.split(' ').slice(1).join(' ').trim();
+  if (!msg) return ctx.reply('Usage: /gmsg <message to broadcast>');
+
+  let sent = 0; let failed = 0;
+  for (const id of allowedChatIds) {
+    try {
+      await ctx.telegram.sendMessage(id, `📢 <b>Broadcast</b>\n\n${msg}`, { parse_mode: 'HTML' });
+      sent++;
+    } catch { failed++; }
+  }
+  ctx.reply(`✅ Broadcast sent to <code>${sent}</code> chats${failed ? `, <code>${failed}</code> failed` : ''}`, { parse_mode: 'HTML' });
+});
+
 bot.start(async (ctx) => {
   await ctx.replyWithChatAction('typing');
   try {
@@ -84,7 +100,8 @@ bot.start(async (ctx) => {
     '🎲 /b [page]\n' +
     '📋 /rs [page]\n' +
     '📈 /rst <issueNumber>\n' +
-    '🌐 /wakeup'
+    '🌐 /wakeup\n' +
+    '📢 /gmsg <msg> (owner only)'
   );
 });
 
@@ -531,6 +548,7 @@ bot.command('rst', async (ctx) => {
     { command: 'rs', description: 'Settled rounds' },
     { command: 'rst', description: 'Round stats by issue number' },
     { command: 'wakeup', description: 'Wake the Render server' },
+    { command: 'gmsg', description: 'Broadcast message to all chats (owner)' },
   ]);
   console.log('Bot commands registered');
 })().catch(err => {
