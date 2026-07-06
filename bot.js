@@ -11,33 +11,50 @@ const api = axios.create({
   headers: { 'x-bot-token': process.env.BOT_API_KEY },
 });
 
-const allowedChatIds = (process.env.ALLOWED_CHAT_IDS || '')
-  .split(',')
-  .map(s => s.trim())
-  .filter(Boolean)
-  .map(Number);
+const FALLBACK_OWNER = process.env.FALLBACK_OWNER_ID || '';
 
-const ownerChatIds = (process.env.OWNER_CHAT_ID || '')
-  .split(',')
-  .map(s => s.trim())
-  .filter(Boolean)
-  .map(Number);
+let botConfig = { ownerId: '', allowedUserIds: [], allowedGroupIds: [] };
+let botConfigFetchedAt = 0;
+const CONFIG_TTL = 5 * 60 * 1000;
 
-bot.use((ctx, next) => {
-  if (allowedChatIds.length && !allowedChatIds.includes(ctx.chat.id)) {
-    const intruder = ctx.chat.id;
-    const username = ctx.from?.username ? '@' + ctx.from.username : 'none';
-    const name = ctx.from?.first_name || 'unknown';
-    const now = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+async function refreshBotConfig() {
+  try {
+    const res = await api.get('/bot-config');
+    if (res.data.success) botConfig = res.data.data;
+    botConfigFetchedAt = Date.now();
+  } catch (e) {
+    console.error('Config fetch failed:', e.message);
+  }
+}
 
+function ensureConfig() {
+  if (!botConfigFetchedAt || Date.now() - botConfigFetchedAt > CONFIG_TTL)
+    return refreshBotConfig();
+}
+
+function getOwnerId() {
+  return botConfig.ownerId || FALLBACK_OWNER;
+}
+
+bot.use(async (ctx, next) => {
+  await ensureConfig();
+  const chatId = String(ctx.chat.id);
+  const isGroup = ctx.chat.type === 'group' || ctx.chat.type === 'supergroup';
+
+  if (isGroup) {
+    if (botConfig.allowedGroupIds.length && !botConfig.allowedGroupIds.includes(chatId))
+      return ctx.reply('Unauthorized.');
+    return next();
+  }
+
+  const allowed = [getOwnerId(), ...botConfig.allowedUserIds].filter(Boolean);
+  if (allowed.length && !allowed.includes(chatId)) {
     ctx.reply('Unauthorized.');
-
-    ownerChatIds.forEach(id => {
-      ctx.telegram.sendMessage(
-        id,
-        `⚠️ Unauthorized\nUser: ${intruder}\n@${username}\n${name}\nTime: ${now}`
-      );
-    });
+    const owner = getOwnerId();
+    if (owner) {
+      ctx.telegram.sendMessage(owner,
+        `⚠️ Unauthorized\nUser: ${chatId}\n@${ctx.from?.username || 'none'}\n${ctx.from?.first_name || '?'}\nTime: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}`);
+    }
     return;
   }
   return next();
@@ -51,13 +68,17 @@ bot.use((ctx, next) => {
 });
 
 bot.command('gmsg', async (ctx) => {
-  if (!ownerChatIds.includes(ctx.chat.id)) return ctx.reply('Only owner can use this command.');
+  if (String(ctx.chat.id) !== getOwnerId()) return ctx.reply('Only owner can use this command.');
 
   const msg = ctx.message.text.split(' ').slice(1).join(' ').trim();
   if (!msg) return ctx.reply('Usage: /gmsg <message to broadcast>');
 
+  await ensureConfig();
+  const targets = [...botConfig.allowedUserIds, ...botConfig.allowedGroupIds].filter(Boolean);
+  if (!targets.length) return ctx.reply('No users or groups configured to broadcast to.');
+
   let sent = 0; let failed = 0;
-  for (const id of allowedChatIds) {
+  for (const id of targets) {
     try {
       await ctx.telegram.sendMessage(id, `📢 <b>Broadcast</b>\n\n${msg}`, { parse_mode: 'HTML' });
       sent++;
@@ -68,6 +89,7 @@ bot.command('gmsg', async (ctx) => {
 
 bot.start(async (ctx) => {
   await ctx.replyWithChatAction('typing');
+  await refreshBotConfig();
   ctx.reply(
     '🤖 Carobot\n\n' +
     '👤 /ui <userId>\n' +
@@ -515,6 +537,8 @@ bot.command('rst', async (ctx) => {
 module.exports = bot;
 
 if (!process.env.VERCEL) {
+  refreshBotConfig();
+  setInterval(refreshBotConfig, CONFIG_TTL);
   (async () => {
     await bot.launch();
     await bot.telegram.setMyCommands([
