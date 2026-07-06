@@ -8,7 +8,7 @@ if (!url) {
   process.exit(1);
 }
 
-const webhookUrl = url.replace(/\/+$/, '') + '/api/webhook';
+const webhookUrl = url.replace(/\/+$/, '');
 
 axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/setWebhook`, {
   url: webhookUrl
