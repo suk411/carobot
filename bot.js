@@ -34,9 +34,6 @@ bot.use(async (ctx, next) => {
   await ensureConfig();
   const chatId = String(ctx.chat.id);
   const isGroup = ctx.chat.type === 'group' || ctx.chat.type === 'supergroup';
-  const hasConfig = botConfig.ownerId || botConfig.allowedUserIds.length || botConfig.allowedGroupIds.length;
-
-  if (!hasConfig) return next();
 
   if (isGroup) {
     if (!botConfig.allowedGroupIds.includes(chatId))
