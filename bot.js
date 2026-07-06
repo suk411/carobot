@@ -11,8 +11,6 @@ const api = axios.create({
   headers: { 'x-bot-token': process.env.BOT_API_KEY },
 });
 
-const FALLBACK_OWNER = process.env.FALLBACK_OWNER_ID || '';
-
 let botConfig = { ownerId: '', allowedUserIds: [], allowedGroupIds: [] };
 let botConfigFetchedAt = 0;
 const CONFIG_TTL = 5 * 60 * 1000;
@@ -32,27 +30,25 @@ function ensureConfig() {
     return refreshBotConfig();
 }
 
-function getOwnerId() {
-  return botConfig.ownerId || FALLBACK_OWNER;
-}
-
 bot.use(async (ctx, next) => {
   await ensureConfig();
   const chatId = String(ctx.chat.id);
   const isGroup = ctx.chat.type === 'group' || ctx.chat.type === 'supergroup';
+  const hasConfig = botConfig.ownerId || botConfig.allowedUserIds.length || botConfig.allowedGroupIds.length;
+
+  if (!hasConfig) return next();
 
   if (isGroup) {
-    if (botConfig.allowedGroupIds.length && !botConfig.allowedGroupIds.includes(chatId))
+    if (!botConfig.allowedGroupIds.includes(chatId))
       return ctx.reply('Unauthorized.');
     return next();
   }
 
-  const allowed = [getOwnerId(), ...botConfig.allowedUserIds].filter(Boolean);
-  if (allowed.length && !allowed.includes(chatId)) {
+  const allowed = [botConfig.ownerId, ...botConfig.allowedUserIds].filter(Boolean);
+  if (!allowed.includes(chatId)) {
     ctx.reply('Unauthorized.');
-    const owner = getOwnerId();
-    if (owner) {
-      ctx.telegram.sendMessage(owner,
+    if (botConfig.ownerId) {
+      ctx.telegram.sendMessage(botConfig.ownerId,
         `⚠️ Unauthorized\nUser: ${chatId}\n@${ctx.from?.username || 'none'}\n${ctx.from?.first_name || '?'}\nTime: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}`);
     }
     return;
@@ -68,7 +64,7 @@ bot.use((ctx, next) => {
 });
 
 bot.command('gmsg', async (ctx) => {
-  if (String(ctx.chat.id) !== getOwnerId()) return ctx.reply('Only owner can use this command.');
+  if (String(ctx.chat.id) !== botConfig.ownerId) return ctx.reply('Only owner can use this command.');
 
   const msg = ctx.message.text.split(' ').slice(1).join(' ').trim();
   if (!msg) return ctx.reply('Usage: /gmsg <message to broadcast>');
