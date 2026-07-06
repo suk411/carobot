@@ -530,40 +530,44 @@ bot.command('rst', async (ctx) => {
   } catch (err) { replyWithError(ctx, err); }
 });
 
-(async () => {
-  await bot.launch();
-  await bot.telegram.setMyCommands([
-    { command: 'start', description: 'Wake server and show menu' },
-    { command: 'ui', description: 'Search user by ID' },
-    { command: 'um', description: 'Search user by mobile' },
-    { command: 'd', description: 'Dashboard (today/month/date)' },
-    { command: 'dd', description: 'Deposits by userId or mobile' },
-    { command: 'ddt', description: 'Deposit by order ID' },
-    { command: 'ww', description: 'Withdrawals by userId' },
-    { command: 'wwt', description: 'Withdrawal by order ID' },
-    { command: 'tt', description: 'Transactions by userId' },
-    { command: 'ttt', description: 'Transaction by order ID' },
-    { command: 'r', description: 'Current round info' },
-    { command: 'b', description: 'Current round bets' },
-    { command: 'rs', description: 'Settled rounds' },
-    { command: 'rst', description: 'Round stats by issue number' },
-    { command: 'wakeup', description: 'Wake the Render server' },
-    { command: 'gmsg', description: 'Broadcast message to all chats (owner)' },
-  ]);
-  console.log('Bot commands registered');
-})().catch(err => {
-  console.error('Bot launch failed:', err.message);
-});
-console.log('Bot running...');
+module.exports = bot;
 
-const http = require('http');
-const PORT = process.env.PORT || 3000;
-http.createServer((_, res) => {
-  res.writeHead(200, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify({ status: 'success', msg: 'ready to use' }));
-}).listen(PORT, () => {
-  console.log(`Health on port ${PORT}`);
-});
+if (!process.env.VERCEL) {
+  (async () => {
+    await bot.launch();
+    await bot.telegram.setMyCommands([
+      { command: 'start', description: 'Wake server and show menu' },
+      { command: 'ui', description: 'Search user by ID' },
+      { command: 'um', description: 'Search user by mobile' },
+      { command: 'd', description: 'Dashboard (today/month/date)' },
+      { command: 'dd', description: 'Deposits by userId or mobile' },
+      { command: 'ddt', description: 'Deposit by order ID' },
+      { command: 'ww', description: 'Withdrawals by userId' },
+      { command: 'wwt', description: 'Withdrawal by order ID' },
+      { command: 'tt', description: 'Transactions by userId' },
+      { command: 'ttt', description: 'Transaction by order ID' },
+      { command: 'r', description: 'Current round info' },
+      { command: 'b', description: 'Current round bets' },
+      { command: 'rs', description: 'Settled rounds' },
+      { command: 'rst', description: 'Round stats by issue number' },
+      { command: 'wakeup', description: 'Wake the Render server' },
+      { command: 'gmsg', description: 'Broadcast message to all chats (owner)' },
+    ]);
+    console.log('Bot commands registered');
+  })().catch(err => {
+    console.error('Bot launch failed:', err.message);
+  });
+  console.log('Bot running...');
 
-process.once('SIGINT', () => bot.stop('SIGINT'));
-process.once('SIGTERM', () => bot.stop('SIGTERM'));
+  const http = require('http');
+  const PORT = process.env.PORT || 3000;
+  http.createServer((_, res) => {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ status: 'success', msg: 'ready to use' }));
+  }).listen(PORT, () => {
+    console.log(`Health on port ${PORT}`);
+  });
+
+  process.once('SIGINT', () => bot.stop('SIGINT'));
+  process.once('SIGTERM', () => bot.stop('SIGTERM'));
+}

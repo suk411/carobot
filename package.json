@@ -5,7 +5,11 @@
   "main": "bot.js",
   "scripts": {
     "start": "node bot.js",
+    "webhook": "node scripts/set-webhook.js",
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "@vercel/node": "^5.1.14"
   },
   "keywords": [],
   "author": "",
