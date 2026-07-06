@@ -50,19 +50,6 @@ bot.use((ctx, next) => {
   return next();
 });
 
-const WAKE_URL = process.env.SELF_URL;
-
-bot.command('wakeup', async (ctx) => {
-  await ctx.replyWithChatAction('typing');
-  await ctx.reply('⏳ Sending wake request...');
-  try {
-    await axios.get(WAKE_URL, { timeout: 30000 });
-    await ctx.reply('✅ Wake request sent — server should be ready shortly');
-  } catch (e) {
-    await ctx.reply('⚠️ Wake request sent (server may still be starting)');
-  }
-});
-
 bot.command('gmsg', async (ctx) => {
   if (!ownerChatIds.includes(ctx.chat.id)) return ctx.reply('Only owner can use this command.');
 
@@ -81,11 +68,7 @@ bot.command('gmsg', async (ctx) => {
 
 bot.start(async (ctx) => {
   await ctx.replyWithChatAction('typing');
-  try {
-    await axios.get(WAKE_URL, { timeout: 30000 });
-  } catch (_) {}
   ctx.reply(
-    '✅ Ready to use!\n\n' +
     '🤖 Carobot\n\n' +
     '👤 /ui <userId>\n' +
     '👤 /um <mobile>\n' +
@@ -100,7 +83,6 @@ bot.start(async (ctx) => {
     '🎲 /b [page]\n' +
     '📋 /rs [page]\n' +
     '📈 /rst <issueNumber>\n' +
-    '🌐 /wakeup\n' +
     '📢 /gmsg <msg> (owner only)'
   );
 });
@@ -550,8 +532,7 @@ if (!process.env.VERCEL) {
       { command: 'b', description: 'Current round bets' },
       { command: 'rs', description: 'Settled rounds' },
       { command: 'rst', description: 'Round stats by issue number' },
-      { command: 'wakeup', description: 'Wake the Render server' },
-      { command: 'gmsg', description: 'Broadcast message to all chats (owner)' },
+    { command: 'gmsg', description: 'Broadcast message to all chats (owner)' },
     ]);
     console.log('Bot commands registered');
   })().catch(err => {
