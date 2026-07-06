@@ -11,7 +11,7 @@ const api = axios.create({
   headers: { 'x-bot-token': process.env.BOT_API_KEY },
 });
 
-let botConfig = { ownerId: '', allowedUserIds: [], allowedGroupIds: [] };
+let botConfig = { ownerIds: [], allowedUserIds: [], allowedGroupIds: [] };
 let botConfigFetchedAt = 0;
 const CONFIG_TTL = 5 * 60 * 1000;
 
@@ -41,12 +41,12 @@ bot.use(async (ctx, next) => {
     return next();
   }
 
-  const allowed = [botConfig.ownerId, ...botConfig.allowedUserIds].filter(Boolean);
+  const allowed = [...botConfig.ownerIds, ...botConfig.allowedUserIds].filter(Boolean);
   if (!allowed.includes(chatId)) {
     ctx.reply('Unauthorized.');
-    if (botConfig.ownerId) {
-      ctx.telegram.sendMessage(botConfig.ownerId,
-        `⚠️ Unauthorized\nUser: ${chatId}\n@${ctx.from?.username || 'none'}\n${ctx.from?.first_name || '?'}\nTime: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}`);
+    if (botConfig.ownerIds.length) {
+      for (const oid of botConfig.ownerIds)
+        ctx.telegram.sendMessage(oid, `⚠️ Unauthorized\nUser: ${chatId}\n@${ctx.from?.username || 'none'}\n${ctx.from?.first_name || '?'}\nTime: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}`);
     }
     return;
   }
@@ -61,7 +61,7 @@ bot.use((ctx, next) => {
 });
 
 bot.command('gmsg', async (ctx) => {
-  if (String(ctx.chat.id) !== botConfig.ownerId) return ctx.reply('Only owner can use this command.');
+  if (!botConfig.ownerIds.includes(String(ctx.chat.id))) return ctx.reply('Only owner can use this command.');
 
   const msg = ctx.message.text.split(' ').slice(1).join(' ').trim();
   if (!msg) return ctx.reply('Usage: /gmsg <message to broadcast>');
