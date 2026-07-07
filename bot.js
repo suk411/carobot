@@ -2,7 +2,7 @@ const { Telegraf } = require('telegraf');
 const axios = require('axios');
 require('dotenv').config();
 
-const API_BASE = 'https://admin-backend-7lwn.onrender.com/api/admin';
+const API_BASE = 'https://admin-backend-silk.vercel.app/api/admin';
 
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
 
