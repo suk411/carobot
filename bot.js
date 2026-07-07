@@ -81,7 +81,6 @@ bot.command('gmsg', async (ctx) => {
 });
 
 bot.start(async (ctx) => {
-  await ctx.replyWithChatAction('typing');
   await refreshBotConfig();
   ctx.reply(
     '🤖 Carobot\n\n' +
@@ -134,52 +133,56 @@ async function replyWithError(ctx, err) {
   ctx.reply(reply);
 }
 
+function formatUserMessage(data) {
+  const { user, account, paymentMethods, deviceInfo } = data;
+  const bank = paymentMethods?.bank;
+  const upi = paymentMethods?.upi;
+
+  let msg =
+    `👤 <b>User #${user.userId}</b>\n` +
+    `━━━━━━━━━━━━━━━━━━━━\n` +
+    `<b>Mobile</b>      <code>${user.mobile}</code>\n` +
+    `<b>Balance</b>     ₹<code>${account.balance}</code>\n` +
+    `<b>Withdrawable</b> ₹<code>${account.withdrawable}</code>\n` +
+    `<b>VIP</b>         ${account.vipLevel} (since ${fmt(account.vipSince)})\n` +
+    `<b>Status</b>      ${account.status}${account.statusRemark ? ' (' + account.statusRemark + ')' : ''}\n` +
+    `<b>Deposits</b>    ₹<code>${account.totalDeposits}</code>\n` +
+    `<b>Pend Bonus</b>  ₹<code>${account.pendingUpgradeBonus}</code>\n` +
+    `<b>Last Bonus</b>  ${account.lastWeeklyBonusAt ? fmt(account.lastWeeklyBonusAt) : '-'}\n` +
+    `━━━━━━━━━━━━━━━━━━━━\n` +
+    `<b>Turnover</b>\n` +
+    `<b>Required</b>    <code>${account.turnover_requirement}</code>\n` +
+    `<b>Completed</b>   <code>${account.total_turnover_completed}</code>\n` +
+    `<b>Last Calc</b>   ${account.lastTurnoverCalcAt ? fmt(account.lastTurnoverCalcAt) : '-'}\n` +
+    `<b>Last Bet</b>    ${account.lastBetCalcAt ? fmt(account.lastBetCalcAt) : '-'}\n`;
+
+  if (bank) {
+    msg += `━━━━━━━━━━━━━━━━━━━━\n` +
+      `🏦 <b>Bank</b>\n` +
+      `<code>${bank.bankName}</code> | <code>${bank.accountNo}</code>\n` +
+      `<code>${bank.ifsc}</code> | ${bank.holderName}\n`;
+  }
+  if (upi) {
+    msg += `━━━━━━━━━━━━━━━━━━━━\n` +
+      `📱 <b>UPI</b>\n<code>${upi.upiId}</code>\n`;
+  }
+
+  msg += `━━━━━━━━━━━━━━━━━━━━\n` +
+    `<b>Last IP</b>     ${deviceInfo?.ip || '-'}\n` +
+    `<b>City</b>        ${deviceInfo?.city || '-'}\n` +
+    `<b>Same IP</b>     ${data.sameIpUsers} users\n` +
+    `<b>Created</b>     ${fmt(user.createdAt)}`;
+
+  return msg;
+}
+
 bot.command('ui', async (ctx) => {
   const input = ctx.message.text.split(' ')[1];
   if (!input) return ctx.reply('Usage: /ui <userId>');
 
   try {
     const res = await api.get('/user', { params: { userId: input } });
-    const { user, account, paymentMethods, deviceInfo } = res.data;
-    const bank = paymentMethods?.bank;
-    const upi = paymentMethods?.upi;
-
-    let msg =
-      `👤 <b>User #${user.userId}</b>\n` +
-      `━━━━━━━━━━━━━━━━━━━━\n` +
-      `<b>Mobile</b>      <code>${user.mobile}</code>\n` +
-      `<b>Balance</b>     ₹<code>${account.balance}</code>\n` +
-      `<b>Withdrawable</b> ₹<code>${account.withdrawable}</code>\n` +
-      `<b>VIP</b>         ${account.vipLevel} (since ${fmt(account.vipSince)})\n` +
-      `<b>Status</b>      ${account.status}${account.statusRemark ? ' (' + account.statusRemark + ')' : ''}\n` +
-      `<b>Deposits</b>    ₹<code>${account.totalDeposits}</code>\n` +
-      `<b>Pend Bonus</b>  ₹<code>${account.pendingUpgradeBonus}</code>\n` +
-      `<b>Last Bonus</b>  ${account.lastWeeklyBonusAt ? fmt(account.lastWeeklyBonusAt) : '-'}\n` +
-      `━━━━━━━━━━━━━━━━━━━━\n` +
-      `<b>Turnover</b>\n` +
-      `<b>Required</b>    <code>${account.turnover_requirement}</code>\n` +
-      `<b>Completed</b>   <code>${account.total_turnover_completed}</code>\n` +
-      `<b>Last Calc</b>   ${account.lastTurnoverCalcAt ? fmt(account.lastTurnoverCalcAt) : '-'}\n` +
-      `<b>Last Bet</b>    ${account.lastBetCalcAt ? fmt(account.lastBetCalcAt) : '-'}\n`;
-
-    if (bank) {
-      msg += `━━━━━━━━━━━━━━━━━━━━\n` +
-        `🏦 <b>Bank</b>\n` +
-        `<code>${bank.bankName}</code> | <code>${bank.accountNo}</code>\n` +
-        `<code>${bank.ifsc}</code> | ${bank.holderName}\n`;
-    }
-    if (upi) {
-      msg += `━━━━━━━━━━━━━━━━━━━━\n` +
-        `📱 <b>UPI</b>\n<code>${upi.upiId}</code>\n`;
-    }
-
-    msg += `━━━━━━━━━━━━━━━━━━━━\n` +
-      `<b>Last IP</b>     ${deviceInfo?.ip || '-'}\n` +
-      `<b>City</b>        ${deviceInfo?.city || '-'}\n` +
-      `<b>Same IP</b>     ${res.data.sameIpUsers} users\n` +
-      `<b>Created</b>     ${fmt(user.createdAt)}`;
-
-    await replyHTML(ctx, msg);
+    await replyHTML(ctx, formatUserMessage(res.data));
   } catch (err) { replyWithError(ctx, err); }
 });
 
@@ -189,46 +192,7 @@ bot.command('um', async (ctx) => {
 
   try {
     const res = await api.get('/user', { params: { mobile: input } });
-    const { user, account, paymentMethods, deviceInfo } = res.data;
-    const bank = paymentMethods?.bank;
-    const upi = paymentMethods?.upi;
-
-    let msg =
-      `👤 <b>User #${user.userId}</b>\n` +
-      `━━━━━━━━━━━━━━━━━━━━\n` +
-      `<b>Mobile</b>      <code>${user.mobile}</code>\n` +
-      `<b>Balance</b>     ₹<code>${account.balance}</code>\n` +
-      `<b>Withdrawable</b> ₹<code>${account.withdrawable}</code>\n` +
-      `<b>VIP</b>         ${account.vipLevel} (since ${fmt(account.vipSince)})\n` +
-      `<b>Status</b>      ${account.status}${account.statusRemark ? ' (' + account.statusRemark + ')' : ''}\n` +
-      `<b>Deposits</b>    ₹<code>${account.totalDeposits}</code>\n` +
-      `<b>Pend Bonus</b>  ₹<code>${account.pendingUpgradeBonus}</code>\n` +
-      `<b>Last Bonus</b>  ${account.lastWeeklyBonusAt ? fmt(account.lastWeeklyBonusAt) : '-'}\n` +
-      `━━━━━━━━━━━━━━━━━━━━\n` +
-      `<b>Turnover</b>\n` +
-      `<b>Required</b>    <code>${account.turnover_requirement}</code>\n` +
-      `<b>Completed</b>   <code>${account.total_turnover_completed}</code>\n` +
-      `<b>Last Calc</b>   ${account.lastTurnoverCalcAt ? fmt(account.lastTurnoverCalcAt) : '-'}\n` +
-      `<b>Last Bet</b>    ${account.lastBetCalcAt ? fmt(account.lastBetCalcAt) : '-'}\n`;
-
-    if (bank) {
-      msg += `━━━━━━━━━━━━━━━━━━━━\n` +
-        `🏦 <b>Bank</b>\n` +
-        `<code>${bank.bankName}</code> | <code>${bank.accountNo}</code>\n` +
-        `<code>${bank.ifsc}</code> | ${bank.holderName}\n`;
-    }
-    if (upi) {
-      msg += `━━━━━━━━━━━━━━━━━━━━\n` +
-        `📱 <b>UPI</b>\n<code>${upi.upiId}</code>\n`;
-    }
-
-    msg += `━━━━━━━━━━━━━━━━━━━━\n` +
-      `<b>Last IP</b>     ${deviceInfo?.ip || '-'}\n` +
-      `<b>City</b>        ${deviceInfo?.city || '-'}\n` +
-      `<b>Same IP</b>     ${res.data.sameIpUsers} users\n` +
-      `<b>Created</b>     ${fmt(user.createdAt)}`;
-
-    await replyHTML(ctx, msg);
+    await replyHTML(ctx, formatUserMessage(res.data));
   } catch (err) { replyWithError(ctx, err); }
 });
 
