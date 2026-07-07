@@ -36,19 +36,17 @@ bot.use(async (ctx, next) => {
   const isGroup = ctx.chat.type === 'group' || ctx.chat.type === 'supergroup';
 
   if (isGroup) {
-    if (!botConfig.allowedGroupIds.includes(chatId))
+    if (!botConfig.allowedGroupIds.includes(chatId)) {
+      alertOwners(ctx, chatId, true);
       return ctx.reply('Unauthorized.');
+    }
     return next();
   }
 
   const allowed = [...botConfig.ownerIds, ...botConfig.allowedUserIds].filter(Boolean);
   if (!allowed.includes(chatId)) {
-    ctx.reply('Unauthorized.');
-    if (botConfig.ownerIds.length) {
-      for (const oid of botConfig.ownerIds)
-        ctx.telegram.sendMessage(oid, `⚠️ Unauthorized\nUser: ${chatId}\n@${ctx.from?.username || 'none'}\n${ctx.from?.first_name || '?'}\nTime: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}`);
-    }
-    return;
+    alertOwners(ctx, chatId, false);
+    return ctx.reply('Unauthorized.');
   }
   return next();
 });
@@ -103,6 +101,21 @@ bot.start(async (ctx) => {
 
 function fmt(d) {
   return new Date(d).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+}
+
+function nowIST() {
+  const d = new Date();
+  return d.toLocaleDateString('en-CA') + '  ' +
+    d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }).toLowerCase();
+}
+
+function alertOwners(ctx, chatId, isGroup) {
+  for (const oid of botConfig.ownerIds)
+    ctx.telegram.sendMessage(oid,
+      `⚠️ Unauthorized ${isGroup ? 'Group' : 'User'}\n` +
+      `Chat: ${chatId}\n` +
+      `${ctx.from ? `User: @${ctx.from.username || 'none'} (${ctx.from.first_name || '?'})\n` : ''}` +
+      `Time: ${nowIST()}`);
 }
 
 async function replyHTML(ctx, msg) {
