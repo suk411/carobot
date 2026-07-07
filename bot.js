@@ -105,14 +105,6 @@ function fmt(d) {
   return new Date(d).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
 }
 
-async function reply(ctx, msg) {
-  const max = 4096;
-  if (msg.length <= max) return ctx.reply(msg);
-  for (let i = 0; i < msg.length; i += max) {
-    await ctx.reply(msg.slice(i, i + max));
-  }
-}
-
 async function replyHTML(ctx, msg) {
   const max = 4096;
   if (msg.length <= max) return ctx.replyWithHTML(msg);
